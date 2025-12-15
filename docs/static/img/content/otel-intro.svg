@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 200">
+  <defs>
+    <linearGradient id="otelGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#425cc7"/>
+      <stop offset="50%" style="stop-color:#f5a800"/>
+      <stop offset="100%" style="stop-color:#425cc7"/>
+    </linearGradient>
+    <filter id="glowEffect">
+      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="200" fill="#0f172a"/>
+
+  <!-- Decorative circles -->
+  <circle cx="100" cy="100" r="80" fill="none" stroke="#425cc7" stroke-width="1" opacity="0.3"/>
+  <circle cx="700" cy="100" r="80" fill="none" stroke="#f5a800" stroke-width="1" opacity="0.3"/>
+  <circle cx="400" cy="100" r="120" fill="none" stroke="url(#otelGrad)" stroke-width="2" opacity="0.2"/>
+
+  <!-- OpenTelemetry Logo representation -->
+  <g transform="translate(350, 50)" filter="url(#glowEffect)">
+    <polygon points="50,0 100,87 0,87" fill="#425cc7" opacity="0.9"/>
+    <polygon points="50,100 100,13 0,13" fill="#f5a800" opacity="0.9"/>
+  </g>
+
+  <!-- Title -->
+  <text x="400" y="170" fill="#e2e8f0" font-family="Arial, sans-serif" font-size="24" font-weight="bold" text-anchor="middle">OpenTelemetry</text>
+  <text x="400" y="192" fill="#94a3b8" font-family="Arial, sans-serif" font-size="12" text-anchor="middle">Observability framework for cloud-native software</text>
+
+  <!-- Side labels -->
+  <text x="100" y="105" fill="#60a5fa" font-family="Arial" font-size="11" text-anchor="middle">Traces</text>
+  <text x="100" y="120" fill="#60a5fa" font-family="Arial" font-size="11" text-anchor="middle">Metrics</text>
+  <text x="100" y="135" fill="#60a5fa" font-family="Arial" font-size="11" text-anchor="middle">Logs</text>
+
+  <text x="700" y="105" fill="#fbbf24" font-family="Arial" font-size="11" text-anchor="middle">Vendor</text>
+  <text x="700" y="120" fill="#fbbf24" font-family="Arial" font-size="11" text-anchor="middle">Neutral</text>
+  <text x="700" y="135" fill="#fbbf24" font-family="Arial" font-size="11" text-anchor="middle">Standard</text>
+</svg>

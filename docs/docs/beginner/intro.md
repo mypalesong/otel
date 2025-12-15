@@ -6,6 +6,8 @@ description: OpenTelemetry가 무엇인지, 왜 필요한지 알아봅니다
 
 # OpenTelemetry 소개
 
+![OpenTelemetry](/img/content/otel-intro.svg)
+
 ## OpenTelemetry란?
 
 **OpenTelemetry(OTel)**는 클라우드 네이티브 소프트웨어의 **관측 가능성(Observability)**을 위한 오픈소스 표준입니다. CNCF(Cloud Native Computing Foundation)의 프로젝트로, 텔레메트리 데이터(traces, metrics, logs)를 수집, 처리, 내보내기 위한 API, SDK, 도구를 제공합니다.

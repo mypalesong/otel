@@ -8,6 +8,8 @@ description: OpenTelemetry를 도입한 글로벌 기업들의 실제 성과와 
 
 OpenTelemetry는 더 이상 실험적인 기술이 아닙니다. 전 세계 최대 규모의 기업들이 프로덕션 환경에서 OpenTelemetry를 활용하여 **측정 가능한 비즈니스 성과**를 달성하고 있습니다.
 
+![Enterprise Benefits](/img/content/enterprise-benefits.svg)
+
 ## 📊 글로벌 도입 현황
 
 ### CNCF 프로젝트 성장 지표 (2024)

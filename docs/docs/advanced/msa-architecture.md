@@ -6,6 +6,8 @@ description: 마이크로서비스 아키텍처에서 OpenTelemetry를 효과적
 
 # MSA 아키텍처 설계
 
+![MSA Observability](/img/content/msa-observability.svg)
+
 ## MSA 환경의 관측 가능성 도전 과제
 
 ```
