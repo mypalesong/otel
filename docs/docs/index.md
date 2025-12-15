@@ -87,6 +87,14 @@ OTel Collector와 백엔드 시스템을 연동하는 방법을 배웁니다.
 - [Python 예제](./practical/python-example) - Python/FastAPI 계측
 - [Go 예제](./practical/go-example) - Go 계측
 
+### 실제 사례 연구 (Case Studies) 🆕
+
+글로벌 기업들의 OpenTelemetry 도입 성과와 교훈입니다.
+
+- [엔터프라이즈 성공 사례](./casestudies/enterprise-success) - eBay, GitHub, Shopify 등의 실제 성과
+- [ROI 분석 및 도입 전략](./casestudies/roi-analysis) - 비용 대비 효과와 전략적 접근
+- [마이그레이션 가이드](./casestudies/migration-guide) - 기존 시스템에서 안전하게 전환하기
+
 ## OpenTelemetry의 이점
 
 | 영역 | 이점 |

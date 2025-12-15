@@ -56,6 +56,17 @@ const sidebars: SidebarsConfig = {
       ],
     },
   ],
+  casestudiesSidebar: [
+    {
+      type: 'category',
+      label: '실제 사례 연구',
+      items: [
+        'casestudies/enterprise-success',
+        'casestudies/roi-analysis',
+        'casestudies/migration-guide',
+      ],
+    },
+  ],
 };
 
 export default sidebars;

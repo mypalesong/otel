@@ -83,6 +83,12 @@ const config: Config = {
           label: '실습',
         },
         {
+          type: 'docSidebar',
+          sidebarId: 'casestudiesSidebar',
+          position: 'left',
+          label: '사례연구',
+        },
+        {
           href: 'https://github.com/mypalesong/otel',
           label: 'GitHub',
           position: 'right',
@@ -98,6 +104,7 @@ const config: Config = {
             {label: '기초', to: '/beginner/intro'},
             {label: '중급', to: '/intermediate/collector'},
             {label: '고급', to: '/advanced/msa-architecture'},
+            {label: '사례연구', to: '/casestudies/enterprise-success'},
           ],
         },
         {
