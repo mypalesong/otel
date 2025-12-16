@@ -487,16 +487,14 @@ processors:
 
 ### 3. Semantic Conventions 차이
 
-```
-기존 태그명              OpenTelemetry Convention
-────────────────        ──────────────────────────
-http.url         →      url.full
-http.method      →      http.request.method
-http.status_code →      http.response.status_code
-peer.service     →      peer.service (동일)
-db.type          →      db.system
-db.statement     →      db.query.text
-```
+| 기존 태그명 | OpenTelemetry Convention |
+|-------------|-------------------------|
+| `http.url` | `url.full` |
+| `http.method` | `http.request.method` |
+| `http.status_code` | `http.response.status_code` |
+| `peer.service` | `peer.service` (동일) |
+| `db.type` | `db.system` |
+| `db.statement` | `db.query.text` |
 
 ---
 
