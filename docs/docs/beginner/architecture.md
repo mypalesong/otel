@@ -125,28 +125,29 @@ trace.set_tracer_provider(provider)
 
 **목적**: 코드 변경 없이 자동으로 텔레메트리 수집
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    Auto-Instrumentation                      │
-├─────────────────────────────────────────────────────────────┤
-│                                                              │
-│  방식 1: Agent (Java, Python, Node.js)                      │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │  $ java -javaagent:opentelemetry-javaagent.jar \    │   │
-│  │         -jar myapp.jar                               │   │
-│  │                                                      │   │
-│  │  JVM 바이트코드 조작으로 자동 계측                    │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                                                              │
-│  방식 2: Instrumentation Libraries                          │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │  # pip install opentelemetry-instrumentation-flask  │   │
-│  │  from opentelemetry.instrumentation.flask import    │   │
-│  │      FlaskInstrumentor                              │   │
-│  │  FlaskInstrumentor().instrument()                   │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                                                              │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Auto["🤖 Auto-Instrumentation 방식"]
+        direction TB
+        subgraph Agent["방식 1: Agent (Java, Python, Node.js)"]
+            A1["java -javaagent:opentelemetry-javaagent.jar"]
+            A2["JVM 바이트코드 조작으로 자동 계측"]
+        end
+
+        subgraph Lib["방식 2: Instrumentation Libraries"]
+            L1["pip install opentelemetry-instrumentation-flask"]
+            L2["FlaskInstrumentor().instrument()"]
+        end
+    end
+
+    Agent --> App["📱 Application"]
+    Lib --> App
+
+    style A1 fill:#6366f1,color:#fff
+    style A2 fill:#6366f1,color:#fff
+    style L1 fill:#22c55e,color:#fff
+    style L2 fill:#22c55e,color:#fff
+    style App fill:#f59e0b,color:#fff
 ```
 
 **지원하는 라이브러리/프레임워크 예시**:
@@ -162,40 +163,47 @@ trace.set_tracer_provider(provider)
 
 Collector는 OpenTelemetry의 핵심 컴포넌트입니다:
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                       OTel Collector                             │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │                      Receivers                           │   │
-│  │  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐       │   │
-│  │  │  OTLP   │ │ Jaeger  │ │  Zipkin │ │Prometheus│       │   │
-│  │  │ (gRPC/  │ │         │ │         │ │         │       │   │
-│  │  │  HTTP)  │ │         │ │         │ │         │       │   │
-│  │  └────┬────┘ └────┬────┘ └────┬────┘ └────┬────┘       │   │
-│  └───────┼───────────┼───────────┼───────────┼─────────────┘   │
-│          └───────────┴───────────┴───────────┘                  │
-│                              │                                   │
-│                              ▼                                   │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │                      Processors                          │   │
-│  │  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐       │   │
-│  │  │  Batch  │ │ Memory  │ │Attribute│ │ Filter  │       │   │
-│  │  │         │ │ Limiter │ │         │ │         │       │   │
-│  │  └────┬────┘ └────┬────┘ └────┬────┘ └────┬────┘       │   │
-│  └───────┼───────────┼───────────┼───────────┼─────────────┘   │
-│          └───────────┴───────────┴───────────┘                  │
-│                              │                                   │
-│                              ▼                                   │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │                      Exporters                           │   │
-│  │  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐       │   │
-│  │  │  OTLP   │ │ Jaeger  │ │Prometheus│ │  Loki   │       │   │
-│  │  └─────────┘ └─────────┘ └─────────┘ └─────────┘       │   │
-│  └─────────────────────────────────────────────────────────┘   │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Collector["⚙️ OTel Collector"]
+        direction TB
+        subgraph Receivers["📥 Receivers"]
+            R1["OTLP<br/>gRPC/HTTP"]
+            R2["Jaeger"]
+            R3["Zipkin"]
+            R4["Prometheus"]
+        end
+
+        subgraph Processors["🔄 Processors"]
+            P1["Batch"]
+            P2["Memory<br/>Limiter"]
+            P3["Attribute"]
+            P4["Filter"]
+        end
+
+        subgraph Exporters["📤 Exporters"]
+            E1["OTLP"]
+            E2["Jaeger"]
+            E3["Prometheus"]
+            E4["Loki"]
+        end
+
+        Receivers --> Processors
+        Processors --> Exporters
+    end
+
+    style R1 fill:#3b82f6,color:#fff
+    style R2 fill:#3b82f6,color:#fff
+    style R3 fill:#3b82f6,color:#fff
+    style R4 fill:#3b82f6,color:#fff
+    style P1 fill:#8b5cf6,color:#fff
+    style P2 fill:#8b5cf6,color:#fff
+    style P3 fill:#8b5cf6,color:#fff
+    style P4 fill:#8b5cf6,color:#fff
+    style E1 fill:#22c55e,color:#fff
+    style E2 fill:#22c55e,color:#fff
+    style E3 fill:#22c55e,color:#fff
+    style E4 fill:#22c55e,color:#fff
 ```
 
 ### Receiver (수신기)
@@ -288,20 +296,17 @@ exporters:
 
 각 서버/Pod에 Collector를 사이드카로 배포:
 
-```
-┌──────────────────────────────────────────────────────────────┐
-│                          Node/Pod                             │
-│  ┌────────────────┐        ┌─────────────────────────────┐   │
-│  │  Application   │ ────▶  │  OTel Collector (Agent)     │   │
-│  │                │  OTLP  │  localhost:4317             │   │
-│  └────────────────┘        └──────────────┬──────────────┘   │
-│                                           │                   │
-└───────────────────────────────────────────┼───────────────────┘
-                                            │
-                                            ▼
-                              ┌─────────────────────────────┐
-                              │  Central Collector/Backend  │
-                              └─────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Pod["📦 Node/Pod"]
+        App["📱 Application"] -->|OTLP| Agent["⚙️ OTel Collector<br/>Agent Mode<br/>localhost:4317"]
+    end
+
+    Agent --> Central["🏢 Central Collector/Backend"]
+
+    style App fill:#3b82f6,color:#fff
+    style Agent fill:#8b5cf6,color:#fff
+    style Central fill:#22c55e,color:#fff
 ```
 
 **장점**: 낮은 네트워크 지연, 애플리케이션과 독립적 설정
@@ -311,25 +316,25 @@ exporters:
 
 중앙 집중식 Collector 배포:
 
-```
-┌────────────────┐     ┌────────────────┐     ┌────────────────┐
-│  Application   │     │  Application   │     │  Application   │
-│       1        │     │       2        │     │       3        │
-└───────┬────────┘     └───────┬────────┘     └───────┬────────┘
-        │                      │                      │
-        └──────────────────────┼──────────────────────┘
-                               │
-                               ▼
-                 ┌─────────────────────────────┐
-                 │     OTel Collector          │
-                 │      (Gateway)              │
-                 └──────────────┬──────────────┘
-                                │
-        ┌───────────────────────┼───────────────────────┐
-        ▼                       ▼                       ▼
-  ┌──────────┐           ┌──────────┐           ┌──────────┐
-  │  Jaeger  │           │  Tempo   │           │Prometheus│
-  └──────────┘           └──────────┘           └──────────┘
+```mermaid
+flowchart TB
+    A1["📱 App 1"] --> GW
+    A2["📱 App 2"] --> GW
+    A3["📱 App 3"] --> GW
+
+    GW["⚙️ OTel Collector<br/>Gateway Mode"]
+
+    GW --> J["Jaeger"]
+    GW --> T["Tempo"]
+    GW --> P["Prometheus"]
+
+    style A1 fill:#3b82f6,color:#fff
+    style A2 fill:#3b82f6,color:#fff
+    style A3 fill:#3b82f6,color:#fff
+    style GW fill:#ec4899,color:#fff
+    style J fill:#22c55e,color:#fff
+    style T fill:#f59e0b,color:#fff
+    style P fill:#ef4444,color:#fff
 ```
 
 **장점**: 중앙 집중식 관리, 리소스 효율성
@@ -339,64 +344,70 @@ exporters:
 
 Agent + Gateway 조합:
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                         Kubernetes Cluster                       │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  ┌─────────────────────┐    ┌─────────────────────┐            │
-│  │       Pod 1         │    │       Pod 2         │            │
-│  │ ┌─────┐  ┌───────┐ │    │ ┌─────┐  ┌───────┐ │            │
-│  │ │ App │─▶│ Agent │ │    │ │ App │─▶│ Agent │ │            │
-│  │ └─────┘  └───┬───┘ │    │ └─────┘  └───┬───┘ │            │
-│  └──────────────┼─────┘    └──────────────┼─────┘            │
-│                 │                          │                    │
-│                 └────────────┬─────────────┘                   │
-│                              │                                  │
-│                              ▼                                  │
-│                 ┌─────────────────────────────┐                │
-│                 │   OTel Collector Gateway    │                │
-│                 │   (Deployment/StatefulSet)  │                │
-│                 └──────────────┬──────────────┘                │
-│                                │                                │
-└────────────────────────────────┼────────────────────────────────┘
-                                 │
-                                 ▼
-                     ┌─────────────────────┐
-                     │   Backend Systems   │
-                     │  (Jaeger, Tempo)    │
-                     └─────────────────────┘
+```mermaid
+flowchart TB
+    subgraph K8s["☸️ Kubernetes Cluster"]
+        subgraph Pod1["📦 Pod 1"]
+            App1["📱 App"] --> Agent1["⚙️ Agent"]
+        end
+        subgraph Pod2["📦 Pod 2"]
+            App2["📱 App"] --> Agent2["⚙️ Agent"]
+        end
+
+        Agent1 --> GW["🌐 OTel Collector Gateway<br/>Deployment/StatefulSet"]
+        Agent2 --> GW
+    end
+
+    GW --> Backend["🗄️ Backend Systems<br/>Jaeger, Tempo"]
+
+    style App1 fill:#3b82f6,color:#fff
+    style App2 fill:#3b82f6,color:#fff
+    style Agent1 fill:#8b5cf6,color:#fff
+    style Agent2 fill:#8b5cf6,color:#fff
+    style GW fill:#ec4899,color:#fff
+    style Backend fill:#22c55e,color:#fff
 ```
 
 ## 데이터 흐름 요약
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                     Complete Data Flow                           │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  1. 계측                                                         │
-│     Application → API → SDK → Span 생성                         │
-│                                                                  │
-│  2. 처리                                                         │
-│     SDK SpanProcessor → Sampling → Batching                     │
-│                                                                  │
-│  3. 내보내기                                                      │
-│     SDK Exporter → OTLP Protocol → Collector                    │
-│                                                                  │
-│  4. 수집                                                         │
-│     Collector Receiver → Internal Format                        │
-│                                                                  │
-│  5. 가공                                                         │
-│     Collector Processors → Filter, Enrich, Batch                │
-│                                                                  │
-│  6. 저장                                                         │
-│     Collector Exporters → Backend (Jaeger, Tempo, etc.)         │
-│                                                                  │
-│  7. 시각화                                                        │
-│     Backend → UI → 사용자                                        │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    subgraph Step1["1️⃣ 계측"]
+        App["Application"] --> API["API"] --> SDK["SDK"] --> Span["Span 생성"]
+    end
+
+    subgraph Step2["2️⃣ 처리"]
+        Span --> Proc["SpanProcessor"] --> Samp["Sampling"] --> Batch["Batching"]
+    end
+
+    subgraph Step3["3️⃣ 내보내기"]
+        Batch --> Exp["Exporter"] --> OTLP["OTLP Protocol"]
+    end
+
+    subgraph Step4["4️⃣ 수집"]
+        OTLP --> Recv["Collector<br/>Receiver"]
+    end
+
+    subgraph Step5["5️⃣ 가공"]
+        Recv --> Procs["Processors<br/>Filter, Enrich"]
+    end
+
+    subgraph Step6["6️⃣ 저장"]
+        Procs --> ExpC["Exporters"] --> Back["Backend<br/>Jaeger, Tempo"]
+    end
+
+    subgraph Step7["7️⃣ 시각화"]
+        Back --> UI["UI"] --> User["👤 사용자"]
+    end
+
+    style App fill:#3b82f6,color:#fff
+    style Span fill:#6366f1,color:#fff
+    style Batch fill:#8b5cf6,color:#fff
+    style OTLP fill:#a855f7,color:#fff
+    style Recv fill:#ec4899,color:#fff
+    style Procs fill:#f43f5e,color:#fff
+    style Back fill:#22c55e,color:#fff
+    style User fill:#f59e0b,color:#fff
 ```
 
 ## 다음 단계

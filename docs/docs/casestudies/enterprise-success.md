@@ -40,24 +40,21 @@ eBay는 세계 최대 규모의 이커머스 플랫폼 중 하나로, 수천 개
 - **분산 시스템 디버깅 어려움**: 문제 발생 시 원인 파악에 많은 시간 소요
 
 #### 솔루션: Sherlock.io + OpenTelemetry
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    eBay Sherlock.io                         │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
-│  │   Metrics    │  │    Logs      │  │   Traces     │     │
-│  │  (Prometheus)│  │              │  │              │     │
-│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘     │
-│         │                 │                 │              │
-│         └─────────────────┼─────────────────┘              │
-│                           │                                │
-│                 ┌─────────▼─────────┐                      │
-│                 │  OpenTelemetry    │                      │
-│                 │    Collector      │                      │
-│                 └───────────────────┘                      │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
+
+```mermaid
+flowchart TB
+    subgraph Signals["📊 Telemetry Signals"]
+        Metrics["📈 Metrics<br/>(Prometheus)"]
+        Logs["📝 Logs"]
+        Traces["🔍 Traces"]
+    end
+
+    Metrics & Logs & Traces --> Collector["⚙️ OpenTelemetry<br/>Collector"]
+
+    style Metrics fill:#3b82f6,color:#fff
+    style Logs fill:#22c55e,color:#fff
+    style Traces fill:#8b5cf6,color:#fff
+    style Collector fill:#f59e0b,color:#fff
 ```
 
 #### 성과
@@ -122,24 +119,22 @@ Skyscanner는 여행 검색 플랫폼으로, 300개 이상의 마이크로서비
 #### 마이그레이션 전략
 OpenTracing에서 OpenTelemetry로의 점진적 전환:
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│              Skyscanner Migration Strategy                  │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│   Phase 1: OpenTracing Shim 적용                           │
-│   ┌──────────────┐     ┌──────────────────────┐           │
-│   │  OpenTracing │────▶│  OTel Shim (Bridge)  │           │
-│   │     API      │     │                      │           │
-│   └──────────────┘     └──────────┬───────────┘           │
-│                                   │                        │
-│   Phase 2: Native OTel 전환       ▼                        │
-│   ┌──────────────┐     ┌──────────────────────┐           │
-│   │ OpenTelemetry│────▶│   OTel Collector     │           │
-│   │     API      │     │                      │           │
-│   └──────────────┘     └──────────────────────┘           │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    subgraph Phase1["Phase 1: Shim 적용"]
+        OT["OpenTracing API"] --> Shim["OTel Shim<br/>(Bridge)"]
+    end
+
+    subgraph Phase2["Phase 2: Native 전환"]
+        OTEL["OpenTelemetry API"] --> Collector["OTel Collector"]
+    end
+
+    Phase1 -.->|"점진적 전환"| Phase2
+
+    style OT fill:#64748b,color:#fff
+    style Shim fill:#f59e0b,color:#fff
+    style OTEL fill:#22c55e,color:#fff
+    style Collector fill:#3b82f6,color:#fff
 ```
 
 #### 핵심 성과
@@ -212,22 +207,30 @@ Network Architecture Journal of Engineering Research의 연구에 따르면:
 
 ### 개발팀 생산성 향상
 
-```
-┌────────────────────────────────────────────────────────────┐
-│          OpenTelemetry 도입 후 개발팀 변화                │
-├────────────────────────────────────────────────────────────┤
-│                                                            │
-│   Before OTel                    After OTel               │
-│   ───────────                    ─────────                │
-│                                                            │
-│   • 수동 계측 코드 작성           • 자동 계측              │
-│   • 벤더별 SDK 학습              • 표준 API 하나만 학습    │
-│   • 문제 원인 파악에 수시간       • 분산 트레이스로 즉시   │
-│   • 여러 도구 간 컨텍스트 스위칭  • 통합 관측성 플랫폼    │
-│                                                            │
-│   MTTR: 수 시간                  MTTR: 수 분              │
-│                                                            │
-└────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    subgraph Before["❌ Before OTel"]
+        B1["수동 계측 코드 작성"]
+        B2["벤더별 SDK 학습"]
+        B3["문제 원인 파악에 수시간"]
+        B4["여러 도구 간 컨텍스트 스위칭"]
+        BMTTR["MTTR: 수 시간"]
+    end
+
+    subgraph After["✅ After OTel"]
+        A1["자동 계측"]
+        A2["표준 API 하나만 학습"]
+        A3["분산 트레이스로 즉시 파악"]
+        A4["통합 관측성 플랫폼"]
+        AMTTR["MTTR: 수 분"]
+    end
+
+    Before -->|"전환"| After
+
+    style Before fill:#ef4444,color:#fff
+    style After fill:#22c55e,color:#fff
+    style BMTTR fill:#dc2626,color:#fff
+    style AMTTR fill:#16a34a,color:#fff
 ```
 
 ---

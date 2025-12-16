@@ -10,72 +10,43 @@ description: Grafana Tempo와 OpenTelemetry를 연동하여 대규모 트레이�
 
 **Grafana Tempo**는 Grafana Labs에서 개발한 고성능, 비용 효율적인 분산 추적 백엔드입니다.
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                      Tempo vs Jaeger                             │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  특성              Tempo                    Jaeger               │
-│  ─────────────────────────────────────────────────────────────  │
-│  인덱싱            없음 (Trace ID만)        전체 인덱싱          │
-│  스토리지 비용     매우 낮음                 높음                 │
-│  검색 방식         Trace ID 필요            태그/속성 검색       │
-│  확장성            매우 높음                 중간                 │
-│  Grafana 통합      네이티브                  플러그인            │
-│  운영 복잡도       낮음                      중간                 │
-│                                                                  │
-│  선택 가이드:                                                    │
-│  • 비용 중시 + Grafana 사용 → Tempo                             │
-│  • 고급 검색 필요 → Jaeger + Elasticsearch                      │
-│  • 둘 다 사용 가능 (Collector로 분기)                           │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
-```
+### Tempo vs Jaeger 비교
+
+| 특성 | Tempo | Jaeger |
+|------|-------|--------|
+| 인덱싱 | 없음 (Trace ID만) | 전체 인덱싱 |
+| 스토리지 비용 | 매우 낮음 💰 | 높음 |
+| 검색 방식 | Trace ID 필요 | 태그/속성 검색 |
+| 확장성 | 매우 높음 📈 | 중간 |
+| Grafana 통합 | 네이티브 ✅ | 플러그인 |
+| 운영 복잡도 | 낮음 | 중간 |
+
+**선택 가이드:**
+- 비용 중시 + Grafana 사용 → **Tempo**
+- 고급 검색 필요 → **Jaeger + Elasticsearch**
+- 둘 다 사용 가능 (Collector로 분기)
 
 ## Tempo 아키텍처
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                      Tempo Architecture                          │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │                     Distributor                          │   │
-│  │  • 트레이스 수신 (OTLP, Jaeger, Zipkin)                  │   │
-│  │  • 데이터 검증                                           │   │
-│  │  • Ingester로 분배 (consistent hashing)                  │   │
-│  └────────────────────────┬────────────────────────────────┘   │
-│                           │                                      │
-│                           ▼                                      │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │                      Ingester                            │   │
-│  │  • 메모리에 트레이스 버퍼링                              │   │
-│  │  • 배치로 블록 생성                                      │   │
-│  │  • 로컬 디스크에 WAL 저장                                │   │
-│  └────────────────────────┬────────────────────────────────┘   │
-│                           │                                      │
-│                           ▼                                      │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │                      Compactor                           │   │
-│  │  • 블록 압축 및 병합                                     │   │
-│  │  • 인덱스 최적화                                         │   │
-│  └────────────────────────┬────────────────────────────────┘   │
-│                           │                                      │
-│                           ▼                                      │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │                   Object Storage                         │   │
-│  │  • S3, GCS, Azure Blob, MinIO                           │   │
-│  │  • 장기 저장소                                           │   │
-│  └────────────────────────┬────────────────────────────────┘   │
-│                           │                                      │
-│                           ▼                                      │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │                       Querier                            │   │
-│  │  • Trace ID로 조회                                       │   │
-│  │  • Ingester + Storage 검색                               │   │
-│  └─────────────────────────────────────────────────────────┘   │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph TempoArch["🎯 Tempo Architecture"]
+        Dist["📥 Distributor<br/>• OTLP, Jaeger, Zipkin 수신<br/>• 데이터 검증<br/>• Consistent hashing 분배"]
+
+        Dist --> Ing["💾 Ingester<br/>• 메모리 버퍼링<br/>• 블록 생성<br/>• WAL 저장"]
+
+        Ing --> Comp["🗜️ Compactor<br/>• 블록 압축/병합<br/>• 인덱스 최적화"]
+
+        Comp --> Store["☁️ Object Storage<br/>S3, GCS, Azure Blob, MinIO<br/>장기 저장소"]
+
+        Store --> Query["🔎 Querier<br/>• Trace ID 조회<br/>• Ingester + Storage 검색"]
+    end
+
+    style Dist fill:#3b82f6,color:#fff
+    style Ing fill:#8b5cf6,color:#fff
+    style Comp fill:#ec4899,color:#fff
+    style Store fill:#22c55e,color:#fff
+    style Query fill:#f59e0b,color:#fff
 ```
 
 ## 배포 방식
@@ -455,36 +426,32 @@ traces_spanmetrics_size_total{...}
 
 ### Trace 검색
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                 Grafana - Explore - Tempo                        │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  Query Type: [Search ▼]                                         │
-│                                                                  │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │ Service Name: [order-service    ]                        │   │
-│  │ Span Name:    [POST /api/orders ]                        │   │
-│  │ Duration:     [> 100ms          ]                        │   │
-│  │ Status:       [error            ]                        │   │
-│  │                                                          │   │
-│  │ Tags:                                                    │   │
-│  │   http.method = POST                                     │   │
-│  │   + Add tag                                              │   │
-│  │                                                          │   │
-│  │ [Run Query]                                              │   │
-│  └─────────────────────────────────────────────────────────┘   │
-│                                                                  │
-│  Results:                                                        │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │ Trace ID          Service         Duration    Spans     │   │
-│  │ ────────────────────────────────────────────────────── │   │
-│  │ abc123def456      order-service   523ms       12        │   │
-│  │ xyz789ghi012      order-service   312ms       8         │   │
-│  │ ...                                                      │   │
-│  └─────────────────────────────────────────────────────────┘   │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph GrafanaExplore["📊 Grafana - Explore - Tempo"]
+        subgraph Query["Query Panel"]
+            Q1["Service Name: order-service"]
+            Q2["Span Name: POST /api/orders"]
+            Q3["Duration: > 100ms"]
+            Q4["Status: error"]
+            Q5["Tags: http.method = POST"]
+            BTN["▶️ Run Query"]
+        end
+
+        subgraph Results["Results"]
+            R1["abc123def456 | order-service | 523ms | 12 spans"]
+            R2["xyz789ghi012 | order-service | 312ms | 8 spans"]
+        end
+    end
+
+    style Q1 fill:#3b82f6,color:#fff
+    style Q2 fill:#3b82f6,color:#fff
+    style Q3 fill:#f59e0b,color:#fff
+    style Q4 fill:#ef4444,color:#fff
+    style Q5 fill:#8b5cf6,color:#fff
+    style BTN fill:#22c55e,color:#fff
+    style R1 fill:#6366f1,color:#fff
+    style R2 fill:#6366f1,color:#fff
 ```
 
 ### TraceQL 쿼리 언어
@@ -515,37 +482,28 @@ Tempo 2.0+에서 지원하는 강력한 쿼리 언어:
 
 Tempo Metrics Generator와 함께 사용:
 
+```mermaid
+flowchart TB
+    FE["🖥️ frontend<br/>50 req/s"] --> US
+    FE --> OS
+    FE --> AS
+
+    US["👤 user-svc<br/>20 req/s<br/>p99: 45ms"]
+    OS["📦 order-svc<br/>30 req/s<br/>p99: 120ms"]
+    AS["🔐 auth-svc<br/>50 req/s<br/>p99: 10ms"]
+
+    OS --> PS["💳 payment-svc<br/>1% error ⚠️"]
+    OS --> ODB["🗄️ order-db<br/>p99: 15ms"]
+
+    style FE fill:#6366f1,color:#fff
+    style US fill:#22c55e,color:#fff
+    style OS fill:#f59e0b,color:#fff
+    style AS fill:#8b5cf6,color:#fff
+    style PS fill:#ef4444,color:#fff
+    style ODB fill:#64748b,color:#fff
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                      Service Map                                 │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│                      ┌──────────┐                               │
-│                      │ frontend │                               │
-│                      │  50 req/s│                               │
-│                      └────┬─────┘                               │
-│                           │                                      │
-│            ┌──────────────┼──────────────┐                      │
-│            │              │              │                       │
-│            ▼              ▼              ▼                       │
-│     ┌──────────┐   ┌──────────┐   ┌──────────┐                 │
-│     │ user-svc │   │order-svc │   │ auth-svc │                 │
-│     │  20 req/s│   │  30 req/s│   │  50 req/s│                 │
-│     │  p99: 45ms│   │ p99:120ms│   │  p99: 10ms│                 │
-│     └──────────┘   └────┬─────┘   └──────────┘                 │
-│                         │                                        │
-│            ┌────────────┴────────────┐                          │
-│            ▼                         ▼                           │
-│     ┌──────────┐              ┌──────────┐                      │
-│     │payment-  │              │ order-db │                      │
-│     │  svc     │              │ (postgres)│                      │
-│     │  1% error│              │ p99: 15ms │                      │
-│     └──────────┘              └──────────┘                      │
-│                                                                  │
-│  [Legend: Size=Request rate, Color=Error rate]                  │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
-```
+
+> **Legend**: Size = Request rate, Color = Error rate (빨간색 = 높음)
 
 ## 프로덕션 고려사항
 

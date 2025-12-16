@@ -10,73 +10,57 @@ description: OpenTelemetry Collector의 역할과 중요성을 알아봅니다
 
 OpenTelemetry Collector는 벤더에 구애받지 않는(vendor-agnostic) 텔레메트리 데이터 수집, 처리, 내보내기 파이프라인입니다.
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    OTel Collector 역할                           │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  ┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐      │
-│  │Service A│    │Service B│    │Service C│    │Service D│      │
-│  └────┬────┘    └────┬────┘    └────┬────┘    └────┬────┘      │
-│       │              │              │              │            │
-│       │   OTLP       │   Jaeger     │   Zipkin     │   Prom    │
-│       └──────────────┴──────────────┴──────────────┘            │
-│                              │                                   │
-│                              ▼                                   │
-│              ┌───────────────────────────────┐                  │
-│              │       OTel Collector          │                  │
-│              │  ┌────────────────────────┐  │                  │
-│              │  │ 수집 → 처리 → 내보내기 │  │                  │
-│              │  └────────────────────────┘  │                  │
-│              └───────────────┬───────────────┘                  │
-│                              │                                   │
-│       ┌──────────────────────┼──────────────────────┐           │
-│       ▼                      ▼                      ▼           │
-│  ┌─────────┐           ┌─────────┐           ┌─────────┐       │
-│  │ Jaeger  │           │  Tempo  │           │Prometheus│       │
-│  └─────────┘           └─────────┘           └─────────┘       │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    SA["📱 Service A<br/>OTLP"] --> Coll
+    SB["📱 Service B<br/>Jaeger"] --> Coll
+    SC["📱 Service C<br/>Zipkin"] --> Coll
+    SD["📱 Service D<br/>Prometheus"] --> Coll
+
+    Coll["⚙️ OTel Collector<br/>수집 → 처리 → 내보내기"]
+
+    Coll --> J["🔍 Jaeger"]
+    Coll --> T["📊 Tempo"]
+    Coll --> P["📈 Prometheus"]
+
+    style SA fill:#3b82f6,color:#fff
+    style SB fill:#3b82f6,color:#fff
+    style SC fill:#3b82f6,color:#fff
+    style SD fill:#3b82f6,color:#fff
+    style Coll fill:#ec4899,color:#fff
+    style J fill:#22c55e,color:#fff
+    style T fill:#f59e0b,color:#fff
+    style P fill:#ef4444,color:#fff
 ```
 
 ## Collector를 사용해야 하는 이유
 
 ### 1. 애플리케이션 분리
 
-```
-Without Collector:
-┌──────────────────────────────────────┐
-│             Application              │
-│  ┌────────────────────────────────┐ │
-│  │        Business Logic          │ │
-│  └────────────────────────────────┘ │
-│  ┌────────────────────────────────┐ │
-│  │   Jaeger Exporter Config       │ │  ← 백엔드 설정이 앱에 포함
-│  │   Prometheus Exporter Config   │ │
-│  │   Retry Logic                  │ │
-│  │   Batching Logic               │ │
-│  └────────────────────────────────┘ │
-└──────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Without["❌ Without Collector"]
+        direction TB
+        App1["📱 Application"]
+        BL1["Business Logic"]
+        EX1["Jaeger Exporter<br/>Prometheus Exporter<br/>Retry Logic<br/>Batching Logic"]
+        App1 --- BL1 --- EX1
+    end
 
-With Collector:
-┌──────────────────────────────────────┐
-│             Application              │
-│  ┌────────────────────────────────┐ │
-│  │        Business Logic          │ │
-│  └────────────────────────────────┘ │
-│  ┌────────────────────────────────┐ │
-│  │   OTLP Exporter (단순)         │ │  ← 단일 표준 프로토콜
-│  └────────────────────────────────┘ │
-└──────────────────────────────────────┘
-              │
-              ▼
-┌──────────────────────────────────────┐
-│           OTel Collector             │  ← 모든 복잡성을 여기서 처리
-│  • 다중 백엔드 지원                   │
-│  • 재시도 로직                        │
-│  • 배치 처리                          │
-│  • 데이터 변환                        │
-└──────────────────────────────────────┘
+    subgraph With["✅ With Collector"]
+        direction TB
+        App2["📱 Application"]
+        BL2["Business Logic"]
+        OTLP["OTLP Exporter<br/>(단순)"]
+        App2 --- BL2 --- OTLP
+        OTLP --> Coll["⚙️ OTel Collector<br/>• 다중 백엔드 지원<br/>• 재시도 로직<br/>• 배치 처리<br/>• 데이터 변환"]
+    end
+
+    style App1 fill:#ef4444,color:#fff
+    style EX1 fill:#ef4444,color:#fff
+    style App2 fill:#22c55e,color:#fff
+    style OTLP fill:#22c55e,color:#fff
+    style Coll fill:#ec4899,color:#fff
 ```
 
 ### 2. 백엔드 유연성
@@ -99,54 +83,69 @@ exporters:
 
 ### 3. 데이터 처리
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                  Collector 데이터 처리 기능                       │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  📥 수집 (Receivers)                                            │
-│  ├── 다양한 포맷 수신 (OTLP, Jaeger, Zipkin, Prometheus)        │
-│  └── 프로토콜 변환                                               │
-│                                                                  │
-│  ⚙️ 처리 (Processors)                                            │
-│  ├── 배치 처리 (Batching) - 성능 최적화                         │
-│  ├── 메모리 제한 (Memory Limiting) - 안정성                     │
-│  ├── 샘플링 (Sampling) - 비용 절감                              │
-│  ├── 필터링 (Filtering) - 불필요 데이터 제거                    │
-│  ├── 속성 추가/수정 (Attributes) - 데이터 보강                  │
-│  └── 리소스 탐지 (Resource Detection) - 자동 메타데이터         │
-│                                                                  │
-│  📤 내보내기 (Exporters)                                         │
-│  ├── 다중 백엔드 동시 전송                                       │
-│  ├── 재시도 및 큐잉                                             │
-│  └── 압축 및 인증                                               │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Processing["⚙️ Collector 데이터 처리 기능"]
+        direction TB
+        subgraph Recv["📥 수집 (Receivers)"]
+            R1["다양한 포맷 수신<br/>OTLP, Jaeger, Zipkin, Prometheus"]
+            R2["프로토콜 변환"]
+        end
+
+        subgraph Proc["⚙️ 처리 (Processors)"]
+            P1["Batching - 성능 최적화"]
+            P2["Memory Limiting - 안정성"]
+            P3["Sampling - 비용 절감"]
+            P4["Filtering - 불필요 데이터 제거"]
+            P5["Attributes - 데이터 보강"]
+            P6["Resource Detection - 자동 메타데이터"]
+        end
+
+        subgraph Exp["📤 내보내기 (Exporters)"]
+            E1["다중 백엔드 동시 전송"]
+            E2["재시도 및 큐잉"]
+            E3["압축 및 인증"]
+        end
+
+        Recv --> Proc --> Exp
+    end
+
+    style R1 fill:#3b82f6,color:#fff
+    style R2 fill:#3b82f6,color:#fff
+    style P1 fill:#8b5cf6,color:#fff
+    style P2 fill:#8b5cf6,color:#fff
+    style P3 fill:#8b5cf6,color:#fff
+    style P4 fill:#8b5cf6,color:#fff
+    style P5 fill:#8b5cf6,color:#fff
+    style P6 fill:#8b5cf6,color:#fff
+    style E1 fill:#22c55e,color:#fff
+    style E2 fill:#22c55e,color:#fff
+    style E3 fill:#22c55e,color:#fff
 ```
 
 ## Collector 배포 방식
 
 ### 1. Agent 모드 (Sidecar/DaemonSet)
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    Kubernetes Node                               │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  Pod 1                          Pod 2                           │
-│  ┌────────────────────────┐    ┌────────────────────────┐      │
-│  │ ┌──────┐  ┌─────────┐ │    │ ┌──────┐  ┌─────────┐ │      │
-│  │ │ App  │─▶│Collector│ │    │ │ App  │─▶│Collector│ │      │
-│  │ │      │  │ (Agent) │ │    │ │      │  │ (Agent) │ │      │
-│  │ └──────┘  └────┬────┘ │    │ └──────┘  └────┬────┘ │      │
-│  └────────────────┼──────┘    └────────────────┼──────┘      │
-│                   │                             │              │
-│                   └─────────────┬───────────────┘              │
-│                                 │                               │
-│                                 ▼                               │
-│                      Central Collector/Backend                  │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph K8sNode["☸️ Kubernetes Node"]
+        subgraph Pod1["📦 Pod 1"]
+            App1["📱 App"] --> Coll1["⚙️ Collector<br/>Agent"]
+        end
+        subgraph Pod2["📦 Pod 2"]
+            App2["📱 App"] --> Coll2["⚙️ Collector<br/>Agent"]
+        end
+
+        Coll1 --> Central["🏢 Central Collector/Backend"]
+        Coll2 --> Central
+    end
+
+    style App1 fill:#3b82f6,color:#fff
+    style App2 fill:#3b82f6,color:#fff
+    style Coll1 fill:#8b5cf6,color:#fff
+    style Coll2 fill:#8b5cf6,color:#fff
+    style Central fill:#22c55e,color:#fff
 ```
 
 **특징**:
@@ -161,27 +160,25 @@ exporters:
 
 ### 2. Gateway 모드
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    Kubernetes Cluster                            │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐           │
-│  │  App 1  │  │  App 2  │  │  App 3  │  │  App 4  │           │
-│  └────┬────┘  └────┬────┘  └────┬────┘  └────┬────┘           │
-│       │            │            │            │                  │
-│       └────────────┴────────────┴────────────┘                  │
-│                          │                                       │
-│                          ▼                                       │
-│            ┌─────────────────────────────┐                      │
-│            │    OTel Collector Gateway   │                      │
-│            │    (Deployment, 3 replicas) │                      │
-│            └──────────────┬──────────────┘                      │
-│                           │                                      │
-└───────────────────────────┼──────────────────────────────────────┘
-                            │
-                            ▼
-                    External Backends
+```mermaid
+flowchart TB
+    subgraph K8sCluster["☸️ Kubernetes Cluster"]
+        A1["📱 App 1"] --> GW
+        A2["📱 App 2"] --> GW
+        A3["📱 App 3"] --> GW
+        A4["📱 App 4"] --> GW
+
+        GW["🌐 OTel Collector Gateway<br/>Deployment, 3 replicas"]
+    end
+
+    GW --> Ext["🗄️ External Backends"]
+
+    style A1 fill:#3b82f6,color:#fff
+    style A2 fill:#3b82f6,color:#fff
+    style A3 fill:#3b82f6,color:#fff
+    style A4 fill:#3b82f6,color:#fff
+    style GW fill:#ec4899,color:#fff
+    style Ext fill:#22c55e,color:#fff
 ```
 
 **특징**:
@@ -196,40 +193,37 @@ exporters:
 
 ### 3. 하이브리드 모드 (권장)
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                   Production Architecture                        │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  Pod                                                             │
-│  ┌────────────────────────────────────┐                        │
-│  │ App ──▶ Agent Collector            │                        │
-│  │         (로컬 버퍼링, 재시도)       │                        │
-│  └──────────────┬─────────────────────┘                        │
-│                 │                                                │
-│  ┌──────────────┴─────────────────────┐                        │
-│  │                                     │                        │
-│  ▼                                     ▼                        │
-│  ┌─────────────────────────────────────────────────────┐       │
-│  │              Gateway Collector Cluster              │       │
-│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐         │       │
-│  │  │ Gateway  │  │ Gateway  │  │ Gateway  │         │       │
-│  │  │    1     │  │    2     │  │    3     │         │       │
-│  │  └──────────┘  └──────────┘  └──────────┘         │       │
-│  │                                                     │       │
-│  │  역할:                                              │       │
-│  │  • 중앙 집중식 샘플링                               │       │
-│  │  • 데이터 보강                                      │       │
-│  │  • 라우팅                                          │       │
-│  └──────────────────────┬──────────────────────────────┘       │
-│                         │                                       │
-└─────────────────────────┼───────────────────────────────────────┘
-                          │
-        ┌─────────────────┼─────────────────┐
-        ▼                 ▼                 ▼
-   ┌─────────┐      ┌──────────┐      ┌─────────┐
-   │ Jaeger  │      │  Tempo   │      │ Grafana │
-   └─────────┘      └──────────┘      └─────────┘
+```mermaid
+flowchart TB
+    subgraph Prod["🏭 Production Architecture"]
+        subgraph Pod["📦 Pod"]
+            App["📱 App"] --> Agent["⚙️ Agent Collector<br/>로컬 버퍼링, 재시도"]
+        end
+
+        subgraph GWCluster["🌐 Gateway Collector Cluster"]
+            GW1["Gateway 1"]
+            GW2["Gateway 2"]
+            GW3["Gateway 3"]
+            Role["역할:<br/>• 중앙 집중식 샘플링<br/>• 데이터 보강<br/>• 라우팅"]
+        end
+
+        Agent --> GW1
+        Agent --> GW2
+        Agent --> GW3
+    end
+
+    GWCluster --> J["🔍 Jaeger"]
+    GWCluster --> T["📊 Tempo"]
+    GWCluster --> G["📈 Grafana"]
+
+    style App fill:#3b82f6,color:#fff
+    style Agent fill:#8b5cf6,color:#fff
+    style GW1 fill:#ec4899,color:#fff
+    style GW2 fill:#ec4899,color:#fff
+    style GW3 fill:#ec4899,color:#fff
+    style J fill:#22c55e,color:#fff
+    style T fill:#f59e0b,color:#fff
+    style G fill:#ef4444,color:#fff
 ```
 
 ## Collector 배포판

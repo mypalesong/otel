@@ -10,30 +10,36 @@ description: 애플리케이션에 OpenTelemetry 계측을 적용하는 다양�
 
 **계측(Instrumentation)**은 애플리케이션에서 텔레메트리 데이터(traces, metrics, logs)를 생성하도록 코드를 추가하는 과정입니다.
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    Instrumentation Types                         │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │                 자동 계측 (Automatic)                    │   │
-│  │  • Zero-code / Low-code                                  │   │
-│  │  • Agent 또는 라이브러리가 자동 계측                     │   │
-│  │  • 일반적인 프레임워크/라이브러리 지원                   │   │
-│  │  • 빠른 시작, 제한된 커스터마이징                        │   │
-│  └─────────────────────────────────────────────────────────┘   │
-│                                                                  │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │                 수동 계측 (Manual)                       │   │
-│  │  • 직접 OTel API 사용                                    │   │
-│  │  • 비즈니스 로직 계측 가능                               │   │
-│  │  • 완전한 제어                                           │   │
-│  │  • 더 많은 코드 필요                                     │   │
-│  └─────────────────────────────────────────────────────────┘   │
-│                                                                  │
-│  권장: 자동 계측 + 수동 계측 병행                               │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Types["🔧 Instrumentation Types"]
+        direction TB
+        subgraph Auto["🤖 자동 계측 (Automatic)"]
+            A1["Zero-code / Low-code"]
+            A2["Agent 또는 라이브러리가 자동 계측"]
+            A3["일반적인 프레임워크/라이브러리 지원"]
+            A4["빠른 시작, 제한된 커스터마이징"]
+        end
+
+        subgraph Manual["✍️ 수동 계측 (Manual)"]
+            M1["직접 OTel API 사용"]
+            M2["비즈니스 로직 계측 가능"]
+            M3["완전한 제어"]
+            M4["더 많은 코드 필요"]
+        end
+    end
+
+    Types --> Rec["💡 권장: 자동 계측 + 수동 계측 병행"]
+
+    style A1 fill:#22c55e,color:#fff
+    style A2 fill:#22c55e,color:#fff
+    style A3 fill:#22c55e,color:#fff
+    style A4 fill:#22c55e,color:#fff
+    style M1 fill:#3b82f6,color:#fff
+    style M2 fill:#3b82f6,color:#fff
+    style M3 fill:#3b82f6,color:#fff
+    style M4 fill:#3b82f6,color:#fff
+    style Rec fill:#f59e0b,color:#fff
 ```
 
 ## 자동 계측 (Auto-Instrumentation)

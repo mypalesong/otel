@@ -10,31 +10,23 @@ description: 서비스 간 분산 추적 컨텍스트를 전파하는 방법을 
 
 **Context Propagation**은 분산 시스템에서 Trace 정보를 서비스 간에 전달하는 메커니즘입니다. 이를 통해 여러 서비스에 걸친 요청을 하나의 Trace로 연결할 수 있습니다.
 
+```mermaid
+sequenceDiagram
+    participant A as Service A
+    participant B as Service B
+
+    Note over A: 1. Span 생성<br/>trace_id: abc123<br/>span_id: span-001
+    Note over A: 2. Context 주입<br/>(Headers에 삽입)
+
+    A->>B: 3. HTTP Request<br/>traceparent: 00-abc123...
+
+    Note over B: 4. Context 추출<br/>trace_id: abc123
+    Note over B: 5. Child Span 생성<br/>parent: span-001<br/>span_id: span-002
+
+    B-->>A: Response
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                   Context Propagation Flow                       │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  Service A                     Service B                        │
-│  ┌─────────────────────────┐  ┌─────────────────────────┐      │
-│  │                         │  │                         │      │
-│  │  1. Span 생성           │  │  4. Context 추출        │      │
-│  │     trace_id: abc123    │  │     trace_id: abc123    │      │
-│  │     span_id: span-001   │  │                         │      │
-│  │                         │  │  5. Child Span 생성     │      │
-│  │  2. Context 주입        │  │     parent: span-001    │      │
-│  │     (Headers에 삽입)    │  │     span_id: span-002   │      │
-│  │                         │  │                         │      │
-│  └───────────┬─────────────┘  └─────────────────────────┘      │
-│              │                           ▲                       │
-│              │  3. HTTP Request          │                       │
-│              │     traceparent: ...      │                       │
-│              └───────────────────────────┘                       │
-│                                                                  │
-│  결과: 두 서비스의 Span이 하나의 Trace로 연결됨                   │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
-```
+
+> **결과**: 두 서비스의 Span이 하나의 Trace로 연결됨
 
 ## W3C Trace Context
 
@@ -46,24 +38,18 @@ W3C Trace Context는 분산 추적을 위한 표준 HTTP 헤더 형식입니다.
 traceparent: {version}-{trace-id}-{parent-id}-{trace-flags}
 
 예시:
+```
 traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+```
 
-분석:
-┌────────────────────────────────────────────────────────────────┐
-│  00  -  4bf92f3577b34da6a3ce929d0e0e4736  -  00f067aa0ba902b7  -  01
-│   │                  │                              │             │
-│   │                  │                              │             └─ trace-flags
-│   │                  │                              │                (01 = sampled)
-│   │                  │                              │
-│   │                  │                              └─ parent-id (16 hex, 8 bytes)
-│   │                  │                                 현재 span의 ID
-│   │                  │
-│   │                  └─ trace-id (32 hex, 16 bytes)
-│   │                     전체 trace의 고유 ID
-│   │
-│   └─ version (2 hex)
-│      현재 버전: 00
-└────────────────────────────────────────────────────────────────┘
+**분석:**
+
+| 부분 | 값 | 설명 |
+|------|-----|------|
+| version | `00` | 현재 버전 (2 hex) |
+| trace-id | `4bf92f3577b34da6a3ce929d0e0e4736` | 전체 trace의 고유 ID (32 hex, 16 bytes) |
+| parent-id | `00f067aa0ba902b7` | 현재 span의 ID (16 hex, 8 bytes) |
+| trace-flags | `01` | 샘플링 여부 (01 = sampled)
 ```
 
 ### tracestate 헤더

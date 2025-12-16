@@ -345,31 +345,28 @@ java -javaagent:opentelemetry-javaagent.jar \
 3. "Find Traces" 클릭
 4. 트레이스 클릭하여 상세 보기
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                      Jaeger UI                                   │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  Search                                                          │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │ Service: [my-nodejs-service ▼]                          │   │
-│  │ Operation: [All ▼]                                      │   │
-│  │ Lookback: [Last Hour ▼]                                 │   │
-│  │                               [Find Traces]             │   │
-│  └─────────────────────────────────────────────────────────┘   │
-│                                                                  │
-│  Results                                                         │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │ ● my-nodejs-service: GET /api/users                     │   │
-│  │   Duration: 125ms | Spans: 3                            │   │
-│  │   12:30:45 PM                                           │   │
-│  │                                                          │   │
-│  │ ● my-nodejs-service: GET /                              │   │
-│  │   Duration: 5ms | Spans: 1                              │   │
-│  │   12:30:40 PM                                           │   │
-│  └─────────────────────────────────────────────────────────┘   │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph JaegerUI["🔍 Jaeger UI"]
+        subgraph Search["Search Panel"]
+            S1["Service: my-nodejs-service"]
+            S2["Operation: All"]
+            S3["Lookback: Last Hour"]
+            BTN["🔎 Find Traces"]
+        end
+
+        subgraph Results["Results"]
+            R1["● GET /api/users<br/>Duration: 125ms | Spans: 3<br/>12:30:45 PM"]
+            R2["● GET /<br/>Duration: 5ms | Spans: 1<br/>12:30:40 PM"]
+        end
+    end
+
+    style S1 fill:#3b82f6,color:#fff
+    style S2 fill:#3b82f6,color:#fff
+    style S3 fill:#3b82f6,color:#fff
+    style BTN fill:#22c55e,color:#fff
+    style R1 fill:#f59e0b,color:#fff
+    style R2 fill:#8b5cf6,color:#fff
 ```
 
 ## 환경 변수로 설정

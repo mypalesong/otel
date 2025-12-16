@@ -8,42 +8,50 @@ description: OpenTelemetry를 프로덕션 환경에 안전하게 배포하는 �
 
 ## 프로덕션 체크리스트
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│              Production Deployment Checklist                     │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  [ ] 고가용성 (HA)                                              │
-│      • Collector 다중 복제본                                    │
-│      • 로드 밸런싱                                              │
-│      • 장애 조치 설정                                           │
-│                                                                  │
-│  [ ] 확장성                                                      │
-│      • HPA (Horizontal Pod Autoscaler) 설정                     │
-│      • 리소스 요청/제한 설정                                    │
-│      • 버퍼 크기 조정                                           │
-│                                                                  │
-│  [ ] 보안                                                        │
-│      • TLS 암호화                                               │
-│      • 인증/인가                                                │
-│      • 민감 데이터 마스킹                                       │
-│                                                                  │
-│  [ ] 안정성                                                      │
-│      • 메모리 제한                                              │
-│      • 재시도 정책                                              │
-│      • 백프레셔 처리                                            │
-│                                                                  │
-│  [ ] 모니터링                                                    │
-│      • Collector 자체 메트릭                                    │
-│      • 알림 설정                                                │
-│      • 대시보드                                                 │
-│                                                                  │
-│  [ ] 운영                                                        │
-│      • 로그 레벨 설정                                           │
-│      • 롤백 계획                                                │
-│      • 문서화                                                   │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph HA["🔄 고가용성 (HA)"]
+        H1["Collector 다중 복제본"]
+        H2["로드 밸런싱"]
+        H3["장애 조치 설정"]
+    end
+
+    subgraph Scale["📈 확장성"]
+        S1["HPA 설정"]
+        S2["리소스 요청/제한"]
+        S3["버퍼 크기 조정"]
+    end
+
+    subgraph Security["🔒 보안"]
+        SE1["TLS 암호화"]
+        SE2["인증/인가"]
+        SE3["민감 데이터 마스킹"]
+    end
+
+    subgraph Stability["⚡ 안정성"]
+        ST1["메모리 제한"]
+        ST2["재시도 정책"]
+        ST3["백프레셔 처리"]
+    end
+
+    subgraph Monitoring["📊 모니터링"]
+        M1["Collector 메트릭"]
+        M2["알림 설정"]
+        M3["대시보드"]
+    end
+
+    subgraph Ops["🔧 운영"]
+        O1["로그 레벨 설정"]
+        O2["롤백 계획"]
+        O3["문서화"]
+    end
+
+    style HA fill:#3b82f6,color:#fff
+    style Scale fill:#8b5cf6,color:#fff
+    style Security fill:#ef4444,color:#fff
+    style Stability fill:#f59e0b,color:#fff
+    style Monitoring fill:#22c55e,color:#fff
+    style Ops fill:#64748b,color:#fff
 ```
 
 ## 고가용성 아키텍처

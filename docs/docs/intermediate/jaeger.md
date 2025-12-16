@@ -10,48 +10,26 @@ description: Jaeger 분산 추적 백엔드와 OpenTelemetry를 연동합니다
 
 **Jaeger**는 Uber에서 개발하고 CNCF에서 졸업한 오픈소스 분산 추적 시스템입니다.
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                      Jaeger Architecture                         │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │                     Applications                         │   │
-│  │  (OTel SDK / Jaeger Client)                             │   │
-│  └────────────────────────┬────────────────────────────────┘   │
-│                           │ OTLP / Thrift                       │
-│                           ▼                                      │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │                  Jaeger Collector                        │   │
-│  │  • 데이터 수신 및 검증                                   │   │
-│  │  • 인덱싱 및 변환                                        │   │
-│  └────────────────────────┬────────────────────────────────┘   │
-│                           │                                      │
-│                           ▼                                      │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │                      Storage                             │   │
-│  │  • Elasticsearch                                         │   │
-│  │  • Cassandra                                             │   │
-│  │  • Memory (개발용)                                       │   │
-│  │  • Badger (로컬 저장소)                                  │   │
-│  │  • Kafka (버퍼/스트리밍)                                 │   │
-│  └────────────────────────┬────────────────────────────────┘   │
-│                           │                                      │
-│                           ▼                                      │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │                    Jaeger Query                          │   │
-│  │  • REST API                                              │   │
-│  │  • gRPC API                                              │   │
-│  └────────────────────────┬────────────────────────────────┘   │
-│                           │                                      │
-│                           ▼                                      │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │                     Jaeger UI                            │   │
-│  │  • Trace 검색 및 시각화                                  │   │
-│  │  • 서비스 의존성 그래프                                  │   │
-│  └─────────────────────────────────────────────────────────┘   │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph JaegerArch["🔍 Jaeger Architecture"]
+        Apps["📱 Applications<br/>OTel SDK / Jaeger Client"]
+        Apps -->|OTLP / Thrift| Collector
+
+        Collector["⚙️ Jaeger Collector<br/>• 데이터 수신 및 검증<br/>• 인덱싱 및 변환"]
+
+        Collector --> Storage["🗄️ Storage<br/>• Elasticsearch<br/>• Cassandra<br/>• Memory (개발용)<br/>• Badger (로컬)<br/>• Kafka (버퍼)"]
+
+        Storage --> Query["🔎 Jaeger Query<br/>• REST API<br/>• gRPC API"]
+
+        Query --> UI["🖥️ Jaeger UI<br/>• Trace 검색 및 시각화<br/>• 서비스 의존성 그래프"]
+    end
+
+    style Apps fill:#3b82f6,color:#fff
+    style Collector fill:#8b5cf6,color:#fff
+    style Storage fill:#22c55e,color:#fff
+    style Query fill:#f59e0b,color:#fff
+    style UI fill:#ec4899,color:#fff
 ```
 
 ## 배포 방식
@@ -86,47 +64,45 @@ docker-compose up -d
 
 ### 2. 분리 배포 (프로덕션)
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                   Production Jaeger Setup                        │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  Applications                                                    │
-│       │                                                          │
-│       ▼                                                          │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │           OTel Collector (Agent/Gateway)                 │   │
-│  └────────────────────────┬────────────────────────────────┘   │
-│                           │                                      │
-│                           ▼                                      │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │              Jaeger Collector Cluster                    │   │
-│  │   ┌──────────┐   ┌──────────┐   ┌──────────┐           │   │
-│  │   │Collector │   │Collector │   │Collector │           │   │
-│  │   │    1     │   │    2     │   │    3     │           │   │
-│  │   └──────────┘   └──────────┘   └──────────┘           │   │
-│  └────────────────────────┬────────────────────────────────┘   │
-│                           │                                      │
-│                           ▼                                      │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │              Elasticsearch Cluster                       │   │
-│  │   ┌──────────┐   ┌──────────┐   ┌──────────┐           │   │
-│  │   │   ES 1   │   │   ES 2   │   │   ES 3   │           │   │
-│  │   └──────────┘   └──────────┘   └──────────┘           │   │
-│  └────────────────────────┬────────────────────────────────┘   │
-│                           │                                      │
-│                           ▼                                      │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │               Jaeger Query Service                       │   │
-│  │   ┌──────────┐   ┌──────────┐                          │   │
-│  │   │ Query 1  │   │ Query 2  │  ← Load Balanced         │   │
-│  │   └──────────┘   └──────────┘                          │   │
-│  └────────────────────────┬────────────────────────────────┘   │
-│                           │                                      │
-│                           ▼                                      │
-│                       Jaeger UI                                  │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Prod["🏭 Production Jaeger Setup"]
+        Apps["📱 Applications"] --> OTel["⚙️ OTel Collector<br/>Agent/Gateway"]
+
+        OTel --> JC["🔷 Jaeger Collector Cluster"]
+        subgraph JC[" "]
+            C1["Collector 1"]
+            C2["Collector 2"]
+            C3["Collector 3"]
+        end
+
+        JC --> ES["🗄️ Elasticsearch Cluster"]
+        subgraph ES[" "]
+            E1["ES 1"]
+            E2["ES 2"]
+            E3["ES 3"]
+        end
+
+        ES --> Query["🔎 Jaeger Query Service<br/>Load Balanced"]
+        subgraph Query[" "]
+            Q1["Query 1"]
+            Q2["Query 2"]
+        end
+
+        Query --> UI["🖥️ Jaeger UI"]
+    end
+
+    style Apps fill:#3b82f6,color:#fff
+    style OTel fill:#8b5cf6,color:#fff
+    style C1 fill:#ec4899,color:#fff
+    style C2 fill:#ec4899,color:#fff
+    style C3 fill:#ec4899,color:#fff
+    style E1 fill:#22c55e,color:#fff
+    style E2 fill:#22c55e,color:#fff
+    style E3 fill:#22c55e,color:#fff
+    style Q1 fill:#f59e0b,color:#fff
+    style Q2 fill:#f59e0b,color:#fff
+    style UI fill:#ef4444,color:#fff
 ```
 
 ## OTel Collector와 연동
@@ -281,125 +257,85 @@ volumes:
 
 ### 트레이스 검색
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                      Jaeger UI - Search                          │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │  Service: [order-service     ▼]                          │   │
-│  │  Operation: [POST /api/orders ▼]                         │   │
-│  │                                                           │   │
-│  │  Tags: error=true                                        │   │
-│  │                                                           │   │
-│  │  Lookback: [Last 1 Hour ▼]                               │   │
-│  │                                                           │   │
-│  │  Min Duration: [100] ms                                  │   │
-│  │  Max Duration: [    ] ms                                 │   │
-│  │                                                           │   │
-│  │  Limit: [20]                                             │   │
-│  │                                                           │   │
-│  │  [Find Traces]                                           │   │
-│  └─────────────────────────────────────────────────────────┘   │
-│                                                                  │
-│  Results:                                                        │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │ ● order-service: POST /api/orders                        │   │
-│  │   4 Spans | 523ms | 3 Errors                            │   │
-│  │   2024-01-15 14:30:45                                   │   │
-│  │                                                          │   │
-│  │ ● order-service: POST /api/orders                        │   │
-│  │   3 Spans | 234ms                                        │   │
-│  │   2024-01-15 14:30:30                                   │   │
-│  └─────────────────────────────────────────────────────────┘   │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph JaegerSearch["🔍 Jaeger UI - Search"]
+        subgraph SearchPanel["Search Panel"]
+            S1["Service: order-service"]
+            S2["Operation: POST /api/orders"]
+            S3["Tags: error=true"]
+            S4["Lookback: Last 1 Hour"]
+            S5["Duration: 100ms - ∞"]
+            BTN["🔎 Find Traces"]
+        end
+
+        subgraph Results["Results"]
+            R1["● order-service: POST /api/orders<br/>4 Spans | 523ms | 3 Errors<br/>2024-01-15 14:30:45"]
+            R2["● order-service: POST /api/orders<br/>3 Spans | 234ms<br/>2024-01-15 14:30:30"]
+        end
+    end
+
+    style S1 fill:#3b82f6,color:#fff
+    style S2 fill:#3b82f6,color:#fff
+    style S3 fill:#ef4444,color:#fff
+    style S4 fill:#3b82f6,color:#fff
+    style S5 fill:#3b82f6,color:#fff
+    style BTN fill:#22c55e,color:#fff
+    style R1 fill:#f59e0b,color:#fff
+    style R2 fill:#8b5cf6,color:#fff
 ```
 
 ### 트레이스 상세 보기
 
+```mermaid
+gantt
+    title Trace: abc123def456 - POST /api/orders (523ms)
+    dateFormat X
+    axisFormat %L ms
+
+    section gateway
+    POST /api/orders           :a1, 0, 523
+
+    section user-svc
+    GetUser                    :a2, 20, 176
+
+    section user-db
+    SELECT                     :a3, 50, 95
+
+    section order-svc
+    CreateOrder                :a4, 180, 492
+
+    section payment-svc
+    ProcessPayment [ERROR]     :crit, a5, 220, 409
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│          Trace: abc123def456 - POST /api/orders                  │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  Duration: 523ms | Services: 4 | Depth: 4 | Total Spans: 12    │
-│                                                                  │
-│  Timeline:                                                       │
-│  0ms                                                    523ms    │
-│  ├─────────────────────────────────────────────────────────┤   │
-│  │                                                          │   │
-│  │ ████████████████████████████████████████████████████████│   │
-│  │ gateway: POST /api/orders                      523ms    │   │
-│  │                                                          │   │
-│  │   ██████████████████████                                │   │
-│  │   user-svc: GetUser                           156ms     │   │
-│  │                                                          │   │
-│  │     ████████                                            │   │
-│  │     user-db: SELECT                            45ms     │   │
-│  │                                                          │   │
-│  │   ████████████████████████████████████████████████████  │   │
-│  │   order-svc: CreateOrder                      312ms     │   │
-│  │                                                          │   │
-│  │     ██████████████████████████████████████              │   │
-│  │     payment-svc: ProcessPayment [ERROR]       189ms     │   │
-│  │                                                          │   │
-│  └─────────────────────────────────────────────────────────┘   │
-│                                                                  │
-│  Span Details (payment-svc: ProcessPayment):                    │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │ Tags:                                                    │   │
-│  │   http.method: POST                                      │   │
-│  │   http.status_code: 500                                  │   │
-│  │   error: true                                            │   │
-│  │                                                          │   │
-│  │ Logs:                                                    │   │
-│  │   14:30:45.123 - exception                               │   │
-│  │   {"kind": "PaymentFailedException",                     │   │
-│  │    "message": "Insufficient funds"}                      │   │
-│  └─────────────────────────────────────────────────────────┘   │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
-```
+
+**Span Details (payment-svc: ProcessPayment):**
+- **Tags**: `http.method: POST`, `http.status_code: 500`, `error: true`
+- **Logs**: `PaymentFailedException: Insufficient funds`
 
 ### 서비스 의존성 그래프
 
+```mermaid
+flowchart TB
+    GW["🚪 gateway"] --> US["👤 user-svc"]
+    GW --> OS["📦 order-svc"]
+    GW --> AS["🔐 auth-svc"]
+
+    US --> UDB["🗄️ user-db<br/>(postgres)"]
+
+    OS --> PS["💳 payment-svc"]
+    OS --> ODB["🗄️ order-db<br/>(postgres)"]
+
+    style GW fill:#6366f1,color:#fff
+    style US fill:#22c55e,color:#fff
+    style OS fill:#f59e0b,color:#fff
+    style AS fill:#8b5cf6,color:#fff
+    style PS fill:#ef4444,color:#fff
+    style UDB fill:#64748b,color:#fff
+    style ODB fill:#64748b,color:#fff
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                  Service Dependencies (DAG)                      │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│                      ┌─────────────┐                            │
-│                      │   gateway   │                            │
-│                      └──────┬──────┘                            │
-│                             │                                    │
-│               ┌─────────────┼─────────────┐                     │
-│               │             │             │                      │
-│               ▼             ▼             ▼                      │
-│        ┌──────────┐  ┌──────────┐  ┌──────────┐                │
-│        │user-svc  │  │order-svc │  │ auth-svc │                │
-│        └────┬─────┘  └────┬─────┘  └──────────┘                │
-│             │             │                                      │
-│             ▼             │                                      │
-│        ┌──────────┐       │                                     │
-│        │ user-db  │       │                                     │
-│        │(postgres)│       │                                     │
-│        └──────────┘       │                                     │
-│                           │                                      │
-│               ┌───────────┴───────────┐                         │
-│               │                       │                          │
-│               ▼                       ▼                          │
-│        ┌──────────┐            ┌──────────┐                     │
-│        │payment   │            │ order-db │                     │
-│        │-svc      │            │(postgres)│                     │
-│        └──────────┘            └──────────┘                     │
-│                                                                  │
-│  Legend: ──▶ Request direction                                  │
-│          Thickness = Request volume                             │
-│          Color = Error rate (red = high)                        │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
-```
+
+> **Legend**: 화살표 방향 = 요청 방향, 색상 = 에러율 (빨간색 = 높음)
 
 ## 고급 설정
 

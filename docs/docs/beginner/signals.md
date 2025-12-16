@@ -19,18 +19,20 @@ OpenTelemetry는 세 가지 핵심 시그널을 제공합니다: **Traces**, **M
 
 ### 구성 요소
 
-```
-Trace
- │
- └── Span (Root)
-      │
-      ├── Span (Child)
-      │    │
-      │    └── Span (Grandchild)
-      │
-      └── Span (Child)
-           │
-           └── Event
+```mermaid
+flowchart TB
+    T["🔍 Trace"] --> RS["Root Span"]
+    RS --> C1["Child Span"]
+    RS --> C2["Child Span"]
+    C1 --> GC["Grandchild Span"]
+    C2 --> E["📌 Event"]
+
+    style T fill:#6366f1,color:#fff
+    style RS fill:#8b5cf6,color:#fff
+    style C1 fill:#a855f7,color:#fff
+    style C2 fill:#a855f7,color:#fff
+    style GC fill:#c084fc,color:#fff
+    style E fill:#f59e0b,color:#fff
 ```
 
 ### 코드 예시
@@ -79,28 +81,28 @@ with tracer.start_as_current_span("process-order") as span:
 
 ### Instrument 타입
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    Metric Instruments                            │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  ┌────────────────────────────────────────────────────────┐    │
-│  │ Synchronous (동기)                                      │    │
-│  │                                                         │    │
-│  │  Counter        단조 증가 카운터     요청 수, 에러 수   │    │
-│  │  UpDownCounter  증감 가능 카운터     활성 연결 수       │    │
-│  │  Histogram      값의 분포 측정       지연 시간 분포     │    │
-│  └────────────────────────────────────────────────────────┘    │
-│                                                                  │
-│  ┌────────────────────────────────────────────────────────┐    │
-│  │ Asynchronous (비동기/Observable)                        │    │
-│  │                                                         │    │
-│  │  ObservableCounter       외부 상태 관찰    프로세스 시작│    │
-│  │  ObservableUpDownCounter 증감 외부 상태    큐 크기      │    │
-│  │  ObservableGauge         현재 값 관찰      CPU 사용률   │    │
-│  └────────────────────────────────────────────────────────┘    │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Sync["📊 Synchronous (동기)"]
+        direction TB
+        C["Counter<br/>단조 증가 카운터<br/>예: 요청 수, 에러 수"]
+        UC["UpDownCounter<br/>증감 가능 카운터<br/>예: 활성 연결 수"]
+        H["Histogram<br/>값의 분포 측정<br/>예: 지연 시간 분포"]
+    end
+
+    subgraph Async["🔄 Asynchronous (비동기/Observable)"]
+        direction TB
+        OC["ObservableCounter<br/>외부 상태 관찰<br/>예: 프로세스 시작"]
+        OUC["ObservableUpDownCounter<br/>증감 외부 상태<br/>예: 큐 크기"]
+        OG["ObservableGauge<br/>현재 값 관찰<br/>예: CPU 사용률"]
+    end
+
+    style C fill:#3b82f6,color:#fff
+    style UC fill:#3b82f6,color:#fff
+    style H fill:#3b82f6,color:#fff
+    style OC fill:#8b5cf6,color:#fff
+    style OUC fill:#8b5cf6,color:#fff
+    style OG fill:#8b5cf6,color:#fff
 ```
 
 ### 코드 예시
@@ -158,34 +160,38 @@ meter.create_observable_gauge(
 
 #### RED 메트릭 (Request-focused)
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                       RED Metrics                                │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  R - Rate       요청률         requests per second              │
-│  E - Errors     에러율         error percentage                 │
-│  D - Duration   지연 시간      request latency (p50, p95, p99)  │
-│                                                                  │
-│  서비스 관점의 핵심 지표 → SLI/SLO 정의에 활용                  │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    subgraph RED["🎯 RED Metrics - 서비스 관점"]
+        R["📈 R - Rate<br/>요청률<br/>requests/sec"]
+        E["❌ E - Errors<br/>에러율<br/>error %"]
+        D["⏱️ D - Duration<br/>지연 시간<br/>p50, p95, p99"]
+    end
+
+    RED --> SLI["SLI/SLO 정의에 활용"]
+
+    style R fill:#22c55e,color:#fff
+    style E fill:#ef4444,color:#fff
+    style D fill:#3b82f6,color:#fff
+    style SLI fill:#f59e0b,color:#fff
 ```
 
 #### USE 메트릭 (Resource-focused)
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                       USE Metrics                                │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  U - Utilization  사용률      CPU%, Memory%                     │
-│  S - Saturation   포화도      큐 길이, 대기 스레드              │
-│  E - Errors       에러        디스크 에러, 네트워크 에러        │
-│                                                                  │
-│  리소스 관점의 핵심 지표 → 용량 계획에 활용                     │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    subgraph USE["⚙️ USE Metrics - 리소스 관점"]
+        U["📊 U - Utilization<br/>사용률<br/>CPU%, Memory%"]
+        S["🔥 S - Saturation<br/>포화도<br/>큐 길이, 대기 스레드"]
+        E2["❌ E - Errors<br/>에러<br/>디스크/네트워크 에러"]
+    end
+
+    USE --> CAP["용량 계획에 활용"]
+
+    style U fill:#8b5cf6,color:#fff
+    style S fill:#ec4899,color:#fff
+    style E2 fill:#ef4444,color:#fff
+    style CAP fill:#f59e0b,color:#fff
 ```
 
 ## 3. Logs (로그)
@@ -197,30 +203,47 @@ meter.create_observable_gauge(
 
 ### OTel Logs 데이터 모델
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    Log Record Structure                          │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  {                                                               │
-│    "timestamp": "2024-01-15T10:30:00.000Z",                     │
-│    "observed_timestamp": "2024-01-15T10:30:00.001Z",            │
-│    "trace_id": "abc123...",          ← Trace 연결               │
-│    "span_id": "def456...",           ← Span 연결                │
-│    "severity_number": 9,             ← 심각도 (숫자)            │
-│    "severity_text": "INFO",          ← 심각도 (텍스트)          │
-│    "body": "Order processed",        ← 로그 메시지              │
-│    "attributes": {                   ← 추가 속성                │
-│      "order.id": "12345",                                       │
-│      "customer.id": "cust-001"                                  │
-│    },                                                            │
-│    "resource": {                     ← 리소스 정보              │
-│      "service.name": "order-service",                           │
-│      "service.version": "1.0.0"                                 │
-│    }                                                             │
-│  }                                                               │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph LogRecord["📝 Log Record Structure"]
+        direction TB
+        TS["⏰ timestamp<br/>2024-01-15T10:30:00.000Z"]
+        OTS["👁️ observed_timestamp<br/>2024-01-15T10:30:00.001Z"]
+
+        subgraph Correlation["🔗 Trace 연결"]
+            TID["trace_id: abc123..."]
+            SID["span_id: def456..."]
+        end
+
+        subgraph Severity["⚠️ 심각도"]
+            SN["severity_number: 9"]
+            ST["severity_text: INFO"]
+        end
+
+        BODY["💬 body: Order processed"]
+
+        subgraph Attrs["📋 attributes"]
+            A1["order.id: 12345"]
+            A2["customer.id: cust-001"]
+        end
+
+        subgraph Res["🏷️ resource"]
+            R1["service.name: order-service"]
+            R2["service.version: 1.0.0"]
+        end
+    end
+
+    style TS fill:#3b82f6,color:#fff
+    style OTS fill:#3b82f6,color:#fff
+    style TID fill:#8b5cf6,color:#fff
+    style SID fill:#8b5cf6,color:#fff
+    style SN fill:#f59e0b,color:#fff
+    style ST fill:#f59e0b,color:#fff
+    style BODY fill:#22c55e,color:#fff
+    style A1 fill:#ec4899,color:#fff
+    style A2 fill:#ec4899,color:#fff
+    style R1 fill:#14b8a6,color:#fff
+    style R2 fill:#14b8a6,color:#fff
 ```
 
 ### 심각도 레벨
@@ -272,27 +295,30 @@ with tracer.start_as_current_span("process-order"):
 
 ### Trace ID를 통한 연결
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    Signal Correlation                            │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  Trace (trace_id: abc123)                                       │
-│  ├── Span: HTTP GET /api/orders                                 │
-│  │   │                                                          │
-│  │   ├── Log: "Fetching orders" (trace_id: abc123)             │
-│  │   │                                                          │
-│  │   ├── Metric: http_request_duration{trace_id: abc123}       │
-│  │   │                                                          │
-│  │   └── Log: "Found 5 orders" (trace_id: abc123)              │
-│  │                                                              │
-│  └── Span: DB Query                                             │
-│      │                                                          │
-│      └── Log: "Query executed" (trace_id: abc123)              │
-│                                                                  │
-│  동일한 trace_id로 모든 시그널 연결 가능                        │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Trace["🔍 Trace (trace_id: abc123)"]
+        direction TB
+        S1["📍 Span: HTTP GET /api/orders"]
+        S2["📍 Span: DB Query"]
+
+        S1 --> L1["📝 Log: Fetching orders"]
+        S1 --> M1["📊 Metric: http_request_duration"]
+        S1 --> L2["📝 Log: Found 5 orders"]
+
+        S1 --> S2
+        S2 --> L3["📝 Log: Query executed"]
+    end
+
+    Note["💡 동일한 trace_id로<br/>모든 시그널 연결 가능"]
+
+    style S1 fill:#6366f1,color:#fff
+    style S2 fill:#6366f1,color:#fff
+    style L1 fill:#22c55e,color:#fff
+    style L2 fill:#22c55e,color:#fff
+    style L3 fill:#22c55e,color:#fff
+    style M1 fill:#f59e0b,color:#fff
+    style Note fill:#ec4899,color:#fff
 ```
 
 ### Exemplars (메트릭-트레이스 연결)
@@ -310,27 +336,40 @@ http_request_duration_bucket{le="1.0"} 150 # {trace_id="abc123"} 0.85
 
 ## 시그널 선택 가이드
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                 When to Use Which Signal                         │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  질문                           추천 시그널                      │
-│  ─────────────────────────────────────────────────────────────  │
-│  "이 요청이 왜 느린가?"         Traces                          │
-│  "어떤 서비스를 거쳤는가?"      Traces                          │
-│  "에러가 어디서 발생했는가?"    Traces + Logs                   │
-│                                                                  │
-│  "분당 요청 수는?"              Metrics                         │
-│  "평균 응답 시간은?"            Metrics                         │
-│  "에러율이 얼마인가?"           Metrics                         │
-│  "CPU 사용률은?"                Metrics                         │
-│                                                                  │
-│  "정확히 무슨 일이 있었는가?"   Logs                            │
-│  "사용자가 무엇을 했는가?"      Logs                            │
-│  "에러의 상세 내용은?"          Logs                            │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Questions["❓ 어떤 질문을 하고 있는가?"]
+        direction TB
+        subgraph TracesQ["🔍 Traces 사용"]
+            Q1["이 요청이 왜 느린가?"]
+            Q2["어떤 서비스를 거쳤는가?"]
+            Q3["에러가 어디서 발생했는가?"]
+        end
+
+        subgraph MetricsQ["📊 Metrics 사용"]
+            Q4["분당 요청 수는?"]
+            Q5["평균 응답 시간은?"]
+            Q6["에러율이 얼마인가?"]
+            Q7["CPU 사용률은?"]
+        end
+
+        subgraph LogsQ["📝 Logs 사용"]
+            Q8["정확히 무슨 일이 있었는가?"]
+            Q9["사용자가 무엇을 했는가?"]
+            Q10["에러의 상세 내용은?"]
+        end
+    end
+
+    style Q1 fill:#6366f1,color:#fff
+    style Q2 fill:#6366f1,color:#fff
+    style Q3 fill:#6366f1,color:#fff
+    style Q4 fill:#22c55e,color:#fff
+    style Q5 fill:#22c55e,color:#fff
+    style Q6 fill:#22c55e,color:#fff
+    style Q7 fill:#22c55e,color:#fff
+    style Q8 fill:#f59e0b,color:#fff
+    style Q9 fill:#f59e0b,color:#fff
+    style Q10 fill:#f59e0b,color:#fff
 ```
 
 ## 다음 단계

@@ -12,26 +12,37 @@ description: 기존 관측성 도구에서 OpenTelemetry로 안전하게 전환�
 
 ### 출발점별 전환 전략
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│              마이그레이션 경로 맵                           │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  출발점                    경로                     목적지 │
-│  ───────                   ────                    ─────── │
-│                                                             │
-│  OpenTracing    ──────▶  OTel Shim  ──────▶              │
-│                                               ┌───────────┐│
-│  OpenCensus     ──────▶  OTel Bridge ─────▶  │   Native  ││
-│                                               │   OTel    ││
-│  Jaeger Client  ──────▶  직접 마이그레이션 ▶  │   SDK     ││
-│                                               └───────────┘│
-│  Zipkin         ──────▶  Collector 전환 ──▶              │
-│                                                             │
-│  벤더 SDK       ──────▶  OTLP Export ─────▶              │
-│  (DataDog 등)                                              │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    subgraph Sources["📍 출발점"]
+        OT["OpenTracing"]
+        OC["OpenCensus"]
+        JC["Jaeger Client"]
+        ZP["Zipkin"]
+        VS["벤더 SDK<br/>(DataDog 등)"]
+    end
+
+    subgraph Paths["🛤️ 경로"]
+        Shim["OTel Shim"]
+        Bridge["OTel Bridge"]
+        Direct["직접 마이그레이션"]
+        CollTrans["Collector 전환"]
+        OTLP["OTLP Export"]
+    end
+
+    subgraph Target["🎯 목적지"]
+        Native["Native<br/>OTel SDK"]
+    end
+
+    OT --> Shim --> Native
+    OC --> Bridge --> Native
+    JC --> Direct --> Native
+    ZP --> CollTrans --> Native
+    VS --> OTLP --> Native
+
+    style Sources fill:#64748b,color:#fff
+    style Target fill:#22c55e,color:#fff
+    style Native fill:#22c55e,color:#fff
 ```
 
 ---
@@ -432,22 +443,14 @@ service:
 
 ### 1. Context Propagation 호환성
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│              Context Propagation 호환성                     │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  헤더 형식        지원 여부      권장 사항                  │
-│  ─────────        ─────────      ─────────                  │
-│  W3C TraceContext  ✅ Native    새 서비스에 사용           │
-│  B3 (Zipkin)       ✅ 지원      마이그레이션 중 병행       │
-│  Jaeger            ✅ 지원      마이그레이션 중 병행       │
-│  X-Ray             ✅ 지원      AWS 환경에서 병행          │
-│                                                             │
-│  💡 팁: 전환 기간에는 여러 형식을 동시에 주입/추출        │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
+| 헤더 형식 | 지원 여부 | 권장 사항 |
+|-----------|----------|-----------|
+| W3C TraceContext | ✅ Native | 새 서비스에 사용 |
+| B3 (Zipkin) | ✅ 지원 | 마이그레이션 중 병행 |
+| Jaeger | ✅ 지원 | 마이그레이션 중 병행 |
+| X-Ray | ✅ 지원 | AWS 환경에서 병행 |
+
+> 💡 **팁**: 전환 기간에는 여러 형식을 동시에 주입/추출
 
 ```javascript
 // 복수 Propagator 설정
