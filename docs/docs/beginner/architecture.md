@@ -10,39 +10,45 @@ description: OpenTelemetry의 구성 요소와 데이터 흐름을 이해합니�
 
 OpenTelemetry는 크게 세 가지 계층으로 구성됩니다:
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    OpenTelemetry Architecture                    │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │                    Application Layer                     │   │
-│  │  ┌───────────┐  ┌───────────┐  ┌───────────┐           │   │
-│  │  │  OTel API │  │  OTel SDK │  │   Auto    │           │   │
-│  │  │           │  │           │  │Instrument │           │   │
-│  │  └───────────┘  └───────────┘  └───────────┘           │   │
-│  └─────────────────────────────────────────────────────────┘   │
-│                              │                                   │
-│                              ▼                                   │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │                    Collection Layer                      │   │
-│  │  ┌─────────────────────────────────────────────────┐   │   │
-│  │  │              OTel Collector                      │   │   │
-│  │  │  ┌──────────┐ ┌──────────┐ ┌──────────┐        │   │   │
-│  │  │  │Receivers │ │Processors│ │Exporters │        │   │   │
-│  │  │  └──────────┘ └──────────┘ └──────────┘        │   │   │
-│  │  └─────────────────────────────────────────────────┘   │   │
-│  └─────────────────────────────────────────────────────────┘   │
-│                              │                                   │
-│                              ▼                                   │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │                     Backend Layer                        │   │
-│  │  ┌─────────┐  ┌──────────┐  ┌───────────┐  ┌────────┐  │   │
-│  │  │ Jaeger  │  │  Tempo   │  │Prometheus │  │  Loki  │  │   │
-│  │  └─────────┘  └──────────┘  └───────────┘  └────────┘  │   │
-│  └─────────────────────────────────────────────────────────┘   │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph App["📱 Application Layer"]
+        API["OTel API"]
+        SDK["OTel SDK"]
+        Auto["Auto<br/>Instrumentation"]
+    end
+
+    subgraph Collection["⚙️ Collection Layer"]
+        subgraph Collector["OTel Collector"]
+            Receivers["📥 Receivers"]
+            Processors["🔄 Processors"]
+            Exporters["📤 Exporters"]
+            Receivers --> Processors --> Exporters
+        end
+    end
+
+    subgraph Backend["🗄️ Backend Layer"]
+        Jaeger["Jaeger<br/>Traces"]
+        Tempo["Tempo<br/>Traces"]
+        Prometheus["Prometheus<br/>Metrics"]
+        Loki["Loki<br/>Logs"]
+    end
+
+    API --> SDK
+    Auto --> SDK
+    SDK --> Receivers
+    Exporters --> Jaeger
+    Exporters --> Tempo
+    Exporters --> Prometheus
+    Exporters --> Loki
+
+    style API fill:#6366f1,color:#fff
+    style SDK fill:#8b5cf6,color:#fff
+    style Auto fill:#a855f7,color:#fff
+    style Jaeger fill:#22c55e,color:#fff
+    style Tempo fill:#f59e0b,color:#fff
+    style Prometheus fill:#ef4444,color:#fff
+    style Loki fill:#3b82f6,color:#fff
 ```
 
 ## 구성 요소 상세
@@ -51,30 +57,29 @@ OpenTelemetry는 크게 세 가지 계층으로 구성됩니다:
 
 **목적**: 계측(Instrumentation)을 위한 인터페이스 정의
 
-```
-┌─────────────────────────────────────────────────┐
-│                   OTel API                       │
-├─────────────────────────────────────────────────┤
-│                                                  │
-│  TracerProvider     ← Tracer 생성 및 관리        │
-│       │                                          │
-│       └──▶ Tracer   ← Span 생성                 │
-│                 │                                │
-│                 └──▶ SpanBuilder                │
-│                           │                      │
-│                           └──▶ Span             │
-│                                                  │
-│  MeterProvider      ← Meter 생성 및 관리         │
-│       │                                          │
-│       └──▶ Meter    ← Instruments 생성          │
-│                 │                                │
-│                 └──▶ Counter, Gauge, etc.       │
-│                                                  │
-│  LoggerProvider     ← Logger 생성 및 관리        │
-│       │                                          │
-│       └──▶ Logger   ← Log Records 생성          │
-│                                                  │
-└─────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Tracing["🔍 Tracing"]
+        TP["TracerProvider"] --> T["Tracer"]
+        T --> SB["SpanBuilder"]
+        SB --> S["Span"]
+    end
+
+    subgraph Metrics["📊 Metrics"]
+        MP["MeterProvider"] --> M["Meter"]
+        M --> C["Counter"]
+        M --> G["Gauge"]
+        M --> H["Histogram"]
+    end
+
+    subgraph Logging["📝 Logging"]
+        LP["LoggerProvider"] --> L["Logger"]
+        L --> LR["Log Records"]
+    end
+
+    style TP fill:#6366f1,color:#fff
+    style MP fill:#22c55e,color:#fff
+    style LP fill:#f59e0b,color:#fff
 ```
 
 **특징**:

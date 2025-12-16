@@ -11,6 +11,12 @@ const config: Config = {
     v4: true,
   },
 
+  // Mermaid 다이어그램 지원
+  markdown: {
+    mermaid: true,
+  },
+  themes: ['@docusaurus/theme-mermaid'],
+
   // GitHub Pages 배포 설정
   url: 'https://mypalesong.github.io',
   baseUrl: '/otel/',

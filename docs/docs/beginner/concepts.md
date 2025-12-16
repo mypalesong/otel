@@ -10,29 +10,22 @@ description: OpenTelemetry의 핵심 개념과 용어를 이해합니다
 
 **관측 가능성**은 시스템의 외부 출력을 관찰하여 내부 상태를 이해할 수 있는 능력입니다.
 
-```
-┌────────────────────────────────────────────────────────────┐
-│              관측 가능성의 세 기둥 (Three Pillars)          │
-├────────────────────────────────────────────────────────────┤
-│                                                             │
-│  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐       │
-│  │              │ │              │ │              │        │
-│  │   Traces     │ │   Metrics    │ │    Logs      │       │
-│  │              │ │              │ │              │        │
-│  │  "무엇이     │ │  "얼마나     │ │  "무슨 일이  │        │
-│  │  일어났는가" │ │  일어났는가" │ │  일어났는가" │        │
-│  │              │ │              │ │              │        │
-│  └──────────────┘ └──────────────┘ └──────────────┘       │
-│                                                             │
-│        │               │               │                   │
-│        └───────────────┼───────────────┘                   │
-│                        ▼                                    │
-│              ┌─────────────────┐                           │
-│              │  Full Picture   │                           │
-│              │  시스템 이해     │                           │
-│              └─────────────────┘                           │
-│                                                             │
-└────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Pillars["🔭 관측 가능성의 세 기둥"]
+        Traces["🔍 Traces<br/>무엇이 일어났는가"]
+        Metrics["📊 Metrics<br/>얼마나 일어났는가"]
+        Logs["📝 Logs<br/>무슨 일이 일어났는가"]
+    end
+
+    Traces --> Full["🎯 Full Picture<br/>시스템 완전 이해"]
+    Metrics --> Full
+    Logs --> Full
+
+    style Traces fill:#6366f1,color:#fff
+    style Metrics fill:#22c55e,color:#fff
+    style Logs fill:#f59e0b,color:#fff
+    style Full fill:#ec4899,color:#fff
 ```
 
 ## 분산 추적(Distributed Tracing) 개념
@@ -41,27 +34,22 @@ description: OpenTelemetry의 핵심 개념과 용어를 이해합니다
 
 **Trace**는 분산 시스템에서 하나의 요청이 여러 서비스를 거치는 전체 여정을 나타냅니다.
 
-```
-Trace ID: abc123
-┌─────────────────────────────────────────────────────────────┐
-│                                                              │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │ Span: HTTP GET /api/orders (Gateway) - 150ms        │   │
-│  │ ┌─────────────────────────────────────────────────┐ │   │
-│  │ │ Span: GetUser (User Service) - 30ms             │ │   │
-│  │ └─────────────────────────────────────────────────┘ │   │
-│  │ ┌─────────────────────────────────────────────────┐ │   │
-│  │ │ Span: FetchOrders (Order Service) - 80ms        │ │   │
-│  │ │ ┌───────────────────────────────────────────┐   │ │   │
-│  │ │ │ Span: DB Query - 45ms                     │   │ │   │
-│  │ │ └───────────────────────────────────────────┘   │ │   │
-│  │ │ ┌───────────────────────────────────────────┐   │ │   │
-│  │ │ │ Span: Cache Lookup - 5ms                  │   │ │   │
-│  │ │ └───────────────────────────────────────────┘   │ │   │
-│  │ └─────────────────────────────────────────────────┘ │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                                                              │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+gantt
+    title Trace ID: abc123
+    dateFormat X
+    axisFormat %L ms
+
+    section Gateway
+    HTTP GET /api/orders :a1, 0, 150
+
+    section User Service
+    GetUser            :a2, 10, 40
+
+    section Order Service
+    FetchOrders        :a3, 50, 130
+    DB Query           :a4, 60, 105
+    Cache Lookup       :a5, 110, 115
 ```
 
 ### Span이란?
@@ -113,28 +101,27 @@ span = {
 
 ## Span의 종류 (Span Kind)
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        Span Kinds                            │
-├─────────────────────────────────────────────────────────────┤
-│                                                              │
-│  ┌─────────────┐    요청    ┌─────────────┐                │
-│  │   CLIENT    │ ────────▶  │   SERVER    │                │
-│  │             │            │             │                 │
-│  │ 요청을 보냄  │            │ 요청을 받음  │                │
-│  └─────────────┘            └─────────────┘                 │
-│                                                              │
-│  ┌─────────────┐   메시지   ┌─────────────┐                │
-│  │  PRODUCER   │ ────────▶  │  CONSUMER   │                │
-│  │             │   큐/토픽   │             │                 │
-│  │ 메시지 발행  │            │ 메시지 소비  │                │
-│  └─────────────┘            └─────────────┘                 │
-│                                                              │
-│  ┌─────────────┐                                            │
-│  │  INTERNAL   │ 내부 작업 (DB 쿼리, 계산 등)               │
-│  └─────────────┘                                            │
-│                                                              │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    subgraph Sync["동기 통신"]
+        direction LR
+        CLIENT["🖥️ CLIENT<br/>요청을 보냄"] -->|HTTP/gRPC| SERVER["🗄️ SERVER<br/>요청을 받음"]
+    end
+
+    subgraph Async["비동기 통신"]
+        direction LR
+        PRODUCER["📤 PRODUCER<br/>메시지 발행"] -->|Kafka/RabbitMQ| CONSUMER["📥 CONSUMER<br/>메시지 소비"]
+    end
+
+    subgraph Internal["내부 처리"]
+        INTERNAL["⚙️ INTERNAL<br/>DB 쿼리, 계산 등"]
+    end
+
+    style CLIENT fill:#3b82f6,color:#fff
+    style SERVER fill:#22c55e,color:#fff
+    style PRODUCER fill:#f59e0b,color:#fff
+    style CONSUMER fill:#ec4899,color:#fff
+    style INTERNAL fill:#8b5cf6,color:#fff
 ```
 
 | Kind | 설명 | 사용 예 |
@@ -151,43 +138,53 @@ span = {
 
 ### W3C Trace Context
 
+```mermaid
+block-beta
+    columns 4
+    block:header:4
+        columns 4
+        h["📋 W3C Trace Context Header"]
+    end
+    space:4
+    v["00"]:1
+    tid["trace-id (32 hex)"]:2
+    sid["span-id (16 hex)"]:1
+    space:4
+    vl["Version"]:1
+    tidl["추적 식별자"]:2
+    sidl["현재 Span ID"]:1
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                   HTTP Request Headers                       │
-├─────────────────────────────────────────────────────────────┤
-│                                                              │
-│  traceparent: 00-{trace-id}-{span-id}-{flags}               │
-│                                                              │
-│  예시:                                                       │
-│  traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-         │
-│               00f067aa0ba902b7-01                            │
-│                                                              │
-│  ┌────┐ ┌──────────────────────────┐ ┌──────────────┐       │
-│  │ 00 │ │      trace-id (32)       │ │ span-id (16) │ ┌──┐ │
-│  └────┘ └──────────────────────────┘ └──────────────┘ │01│ │
-│  버전         추적 식별자                현재 Span     flags│
-│                                                              │
-│  tracestate: congo=t61rcWkgMzE,rojo=00f067aa0ba902b7       │
-│  (벤더별 추가 정보)                                          │
-│                                                              │
-└─────────────────────────────────────────────────────────────┘
+
+**예시:**
+```
+traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+tracestate: congo=t61rcWkgMzE,rojo=00f067aa0ba902b7
 ```
 
 ### Propagation 흐름
 
-```
-Service A                    Service B                    Service C
-┌─────────┐                 ┌─────────┐                 ┌─────────┐
-│         │                 │         │                 │         │
-│  Span   │  HTTP Request   │  Span   │  HTTP Request   │  Span   │
-│  생성   │ ─────────────▶  │  생성   │ ─────────────▶  │  생성   │
-│         │  + traceparent  │         │  + traceparent  │         │
-│         │                 │         │                 │         │
-└─────────┘                 └─────────┘                 └─────────┘
+```mermaid
+sequenceDiagram
+    participant A as Service A
+    participant B as Service B
+    participant C as Service C
 
-Trace ID: abc123 (동일)
-Span IDs: span-A → span-B → span-C (각각 다름)
+    Note over A: Span 생성<br/>trace-id: abc123<br/>span-id: span-A
+
+    A->>B: HTTP Request<br/>+ traceparent header
+
+    Note over B: Span 생성<br/>trace-id: abc123<br/>span-id: span-B<br/>parent: span-A
+
+    B->>C: HTTP Request<br/>+ traceparent header
+
+    Note over C: Span 생성<br/>trace-id: abc123<br/>span-id: span-C<br/>parent: span-B
+
+    C-->>B: Response
+    B-->>A: Response
 ```
+
+> **Trace ID**: abc123 (모든 서비스에서 동일)
+> **Span IDs**: span-A → span-B → span-C (각각 다름)
 
 ## Attributes와 Resources
 
@@ -237,64 +234,70 @@ k8s.namespace.name: "default"
 
 Span 수명 동안 발생하는 특정 이벤트:
 
-```
-Span: ProcessOrder
-├── Event: "Order validation started" (t=0ms)
-├── Event: "Inventory check completed" (t=50ms)
-├── Event: "Payment initiated" (t=100ms)
-├── Event: "Payment confirmed" (t=200ms)
-└── Event: "Order completed" (t=250ms)
+```mermaid
+flowchart LR
+    subgraph ProcessOrder["📦 Span: ProcessOrder (250ms)"]
+        E1["✅ Order validation started<br/>t=0ms"]
+        E2["📋 Inventory check completed<br/>t=50ms"]
+        E3["💳 Payment initiated<br/>t=100ms"]
+        E4["✔️ Payment confirmed<br/>t=200ms"]
+        E5["🎉 Order completed<br/>t=250ms"]
+        E1 --> E2 --> E3 --> E4 --> E5
+    end
 ```
 
 ### Span Links
 
 관련된 다른 Trace나 Span과의 연결:
 
-```
-Batch Processing 예시:
+```mermaid
+flowchart LR
+    subgraph Orders["개별 주문"]
+        A["Trace A<br/>주문 1"]
+        B["Trace B<br/>주문 2"]
+        C["Trace C<br/>주문 3"]
+    end
 
-Trace A (주문 1) ──┐
-Trace B (주문 2) ──┼──▶ Trace X (배치 처리)
-Trace C (주문 3) ──┘
+    subgraph Batch["배치 처리"]
+        X["Trace X<br/>배치 처리"]
+    end
 
-Link를 통해 원본 주문들과 배치 처리 추적 연결
+    A -.->|Link| X
+    B -.->|Link| X
+    C -.->|Link| X
+
+    style X fill:#ec4899,color:#fff
 ```
+
+> Link를 통해 원본 주문들과 배치 처리 추적 연결
 
 ## 시각화 예시
 
 ### Jaeger UI에서의 Trace 뷰
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│ Trace: HTTP GET /api/checkout                                    │
-│ Duration: 523ms | Services: 5 | Depth: 4                        │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│ ─────────────────────────────────────────────────────────────── │
-│ ███████████████████████████████████████████████████████████████ │
-│ gateway-service: HTTP GET /api/checkout               523ms     │
-│                                                                  │
-│     ─────────────────────────────────────                       │
-│     ███████████████████████████████████                         │
-│     user-service: GetUserProfile                     156ms      │
-│                                                                  │
-│         ───────────────                                         │
-│         ███████████████                                         │
-│         user-db: SELECT                               45ms      │
-│                                                                  │
-│     ─────────────────────────────────────────────────────────── │
-│     ███████████████████████████████████████████████████████████ │
-│     order-service: CreateOrder                       312ms      │
-│                                                                  │
-│         ─────────────────────────────────                       │
-│         █████████████████████████████████                       │
-│         payment-service: ProcessPayment              189ms      │
-│                                                                  │
-│             ─────────────────                                   │
-│             ███████████████                                     │
-│             payment-gateway: Charge                   78ms      │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+gantt
+    title Trace: HTTP GET /api/checkout (523ms)
+    dateFormat X
+    axisFormat %L ms
+
+    section gateway-service
+    HTTP GET /api/checkout      :a1, 0, 523
+
+    section user-service
+    GetUserProfile              :a2, 20, 176
+
+    section user-db
+    SELECT                      :a3, 50, 95
+
+    section order-service
+    CreateOrder                 :a4, 180, 492
+
+    section payment-service
+    ProcessPayment              :a5, 220, 409
+
+    section payment-gateway
+    Charge                      :a6, 280, 358
 ```
 
 ## 핵심 개념 요약

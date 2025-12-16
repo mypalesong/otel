@@ -12,28 +12,33 @@ description: OpenTelemetry가 무엇인지, 왜 필요한지 알아봅니다
 
 **OpenTelemetry(OTel)**는 클라우드 네이티브 소프트웨어의 **관측 가능성(Observability)**을 위한 오픈소스 표준입니다. CNCF(Cloud Native Computing Foundation)의 프로젝트로, 텔레메트리 데이터(traces, metrics, logs)를 수집, 처리, 내보내기 위한 API, SDK, 도구를 제공합니다.
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    OpenTelemetry Ecosystem                       │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  ┌──────────┐    ┌──────────┐    ┌──────────┐                  │
-│  │  Traces  │    │ Metrics  │    │   Logs   │                  │
-│  └────┬─────┘    └────┬─────┘    └────┬─────┘                  │
-│       │               │               │                         │
-│       └───────────────┼───────────────┘                         │
-│                       ▼                                          │
-│            ┌─────────────────────┐                              │
-│            │   OTel Collector    │                              │
-│            └──────────┬──────────┘                              │
-│                       │                                          │
-│       ┌───────────────┼───────────────┐                         │
-│       ▼               ▼               ▼                         │
-│  ┌─────────┐    ┌──────────┐    ┌──────────┐                   │
-│  │ Jaeger  │    │  Tempo   │    │Prometheus│                   │
-│  └─────────┘    └──────────┘    └──────────┘                   │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Signals["📊 Telemetry Signals"]
+        Traces["🔍 Traces"]
+        Metrics["📈 Metrics"]
+        Logs["📝 Logs"]
+    end
+
+    subgraph Collector["⚙️ OTel Collector"]
+        Receivers["Receivers"]
+        Processors["Processors"]
+        Exporters["Exporters"]
+        Receivers --> Processors --> Exporters
+    end
+
+    subgraph Backends["🗄️ Backends"]
+        Jaeger["Jaeger"]
+        Tempo["Tempo"]
+        Prometheus["Prometheus"]
+    end
+
+    Traces --> Collector
+    Metrics --> Collector
+    Logs --> Collector
+    Exporters --> Jaeger
+    Exporters --> Tempo
+    Exporters --> Prometheus
 ```
 
 ## 왜 OpenTelemetry가 필요한가?
@@ -50,52 +55,44 @@ description: OpenTelemetry가 무엇인지, 왜 필요한지 알아봅니다
 
 ### 2. 통합된 관측 가능성
 
+```mermaid
+flowchart LR
+    subgraph Before["❌ Before OpenTelemetry"]
+        direction LR
+        App1["App"] --> JaegerAgent["Jaeger Agent"]
+        App2["App"] --> PromExporter["Prometheus Exporter"]
+        App3["App"] --> Fluentd["Fluentd"]
+    end
+
+    subgraph After["✅ After OpenTelemetry"]
+        direction LR
+        App["App"] --> SDK["OTel SDK"] --> Collector["Collector"] --> Backend["Jaeger/Prometheus/Loki"]
+    end
 ```
-┌─────────────────────────────────────────────────────────┐
-│                   Before OpenTelemetry                   │
-├─────────────────────────────────────────────────────────┤
-│                                                          │
-│   App → Jaeger Agent (Traces)                           │
-│   App → Prometheus Exporter (Metrics)                   │
-│   App → Fluentd (Logs)                                  │
-│                                                          │
-│   = 3가지 다른 라이브러리, 3가지 다른 설정              │
-│                                                          │
-├─────────────────────────────────────────────────────────┤
-│                   After OpenTelemetry                    │
-├─────────────────────────────────────────────────────────┤
-│                                                          │
-│   App → OTel SDK → OTel Collector → Jaeger/Prometheus   │
-│                                                          │
-│   = 1가지 통합 라이브러리, 1가지 설정                   │
-│                                                          │
-└─────────────────────────────────────────────────────────┘
-```
+
+> **Before**: 3가지 다른 라이브러리, 3가지 다른 설정
+> **After**: 1가지 통합 라이브러리, 1가지 설정
 
 ### 3. MSA 환경에서의 필수 요소
 
 마이크로서비스 아키텍처에서 하나의 요청은 수십 개의 서비스를 거칠 수 있습니다:
 
-```
-사용자 요청
-    │
-    ▼
-┌─────────┐     ┌─────────┐     ┌─────────┐
-│ Gateway │ ──▶ │ User    │ ──▶ │ Auth    │
-│ Service │     │ Service │     │ Service │
-└─────────┘     └────┬────┘     └─────────┘
-                     │
-                     ▼
-                ┌─────────┐     ┌─────────┐
-                │ Order   │ ──▶ │ Payment │
-                │ Service │     │ Service │
-                └────┬────┘     └─────────┘
-                     │
-                     ▼
-                ┌─────────┐
-                │ Notify  │
-                │ Service │
-                └─────────┘
+```mermaid
+flowchart TD
+    User["👤 사용자 요청"] --> Gateway["🚪 Gateway Service"]
+    Gateway --> UserSvc["👥 User Service"]
+    UserSvc --> Auth["🔐 Auth Service"]
+    UserSvc --> Order["📦 Order Service"]
+    Order --> Payment["💳 Payment Service"]
+    Order --> Notify["📧 Notify Service"]
+
+    style User fill:#e0f2fe
+    style Gateway fill:#ddd6fe
+    style UserSvc fill:#bbf7d0
+    style Auth fill:#fef3c7
+    style Order fill:#fed7aa
+    style Payment fill:#fecaca
+    style Notify fill:#e9d5ff
 ```
 
 **문제**: 어디서 지연이 발생했는지 어떻게 찾을 것인가?
@@ -124,24 +121,17 @@ description: OpenTelemetry가 무엇인지, 왜 필요한지 알아봅니다
 
 ## OpenTelemetry 역사
 
-```
-2010년대 초반: 분산 추적 시대의 시작
-    │
-    ├── 2012: Twitter의 Zipkin 오픈소스 공개
-    │
-    ├── 2015: Uber의 Jaeger 개발 시작
-    │
-    ├── 2016: OpenTracing 프로젝트 시작 (CNCF)
-    │
-    ├── 2017: OpenCensus 프로젝트 시작 (Google)
-    │
-    ├── 2019: OpenTracing + OpenCensus = OpenTelemetry 통합
-    │
-    ├── 2021: Tracing API/SDK GA (Generally Available)
-    │
-    ├── 2023: Metrics, Logs GA
-    │
-    └── 현재: CNCF Graduated 프로젝트, 업계 표준
+```mermaid
+timeline
+    title OpenTelemetry 역사
+    2012 : Twitter Zipkin 공개
+    2015 : Uber Jaeger 개발
+    2016 : OpenTracing 시작 (CNCF)
+    2017 : OpenCensus 시작 (Google)
+    2019 : OpenTelemetry 통합
+    2021 : Tracing GA
+    2023 : Metrics & Logs GA
+    2024 : CNCF Graduated
 ```
 
 ## 다음 단계
